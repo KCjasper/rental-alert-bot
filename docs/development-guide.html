@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="租屋情報機器人開發環境操作指南">
+  <title>租屋情報機器人｜開發指南</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #dfe5ec;
+      --soft: #f5f7fa;
+      --brand: #176b87;
+      --brand-soft: #eaf6f8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+        "Microsoft JhengHei", sans-serif;
+      line-height: 1.72;
+    }
+    main {
+      width: min(920px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 80px;
+    }
+    a { color: var(--brand); }
+    h1, h2 { line-height: 1.3; }
+    h1 { margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 3rem); }
+    h2 {
+      margin: 42px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
+    }
+    .eyebrow {
+      color: var(--brand);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .lead { color: var(--muted); font-size: 1.05rem; }
+    .status {
+      display: inline-block;
+      padding: 5px 11px;
+      border-radius: 999px;
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-weight: 800;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 18px;
+      border-radius: 12px;
+      color: #eef7fa;
+      background: #172033;
+      line-height: 1.55;
+    }
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: .9em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--soft); }
+    .note {
+      padding: 16px 18px;
+      border-left: 4px solid var(--brand);
+      border-radius: 8px;
+      background: var(--brand-soft);
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+    @media (max-width: 680px) {
+      main { width: min(100% - 24px, 920px); padding-top: 24px; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a href="../index.html">產品規格</a> ·
+      <a href="technical-spec.html">技術規格</a> ·
+      <a href="development-process.html">開發流程</a>
+    </nav>
+
+    <header>
+      <div class="eyebrow">Developer Guide · Phase 1</div>
+      <h1>開發環境操作指南</h1>
+      <p class="lead">本文件說明如何建立隔離環境、執行品質檢查，以及驗證應用程式啟動設定。</p>
+      <span class="status">階段 1：已通過</span>
+    </header>
+
+    <section>
+      <h2>環境需求</h2>
+      <table>
+        <thead>
+          <tr><th>工具</th><th>需求</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Python</td><td>3.12 至 3.14；專案預設使用 3.12。</td></tr>
+          <tr><td>uv</td><td>負責建立虛擬環境、安裝鎖定依賴及執行命令。</td></tr>
+          <tr><td>Git</td><td>版本管理與 GitHub 同步。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>第一次安裝</h2>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv sync --frozen</code></pre>
+      <p>指令會建立專案專用的 <code>.venv</code>，不會修改系統 Python 套件。</p>
+    </section>
+
+    <section>
+      <h2>執行完整檢查</h2>
+      <pre><code>powershell -ExecutionPolicy Bypass -File .\scripts\check.ps1</code></pre>
+      <p>檢查順序為：鎖定依賴、Ruff 靜態檢查、pytest 自動測試、Python 編譯檢查。</p>
+    </section>
+
+    <section>
+      <h2>驗證啟動設定</h2>
+      <pre><code>$env:TELEGRAM_BOT_TOKEN = "僅限本機測試值"
+$env:AUTHORIZED_TELEGRAM_USER_ID = "123456"
+uv run rental-alert-bot --check</code></pre>
+      <div class="note">
+        不要把真實 Token 寫入文件、Git 或聊天。正式值只放在未提交的
+        <code>.env</code> 或 Railway Variables；目前程式不會自動讀取 <code>.env</code>。
+      </div>
+    </section>
+
+    <section>
+      <h2>階段 1 驗收</h2>
+      <ul>
+        <li>全新環境可依本文件安裝。</li>
+        <li>缺少必要設定時，啟動檢查回傳失敗。</li>
+        <li>Ruff、pytest 與 compileall 全部通過。</li>
+        <li>Git 不包含 <code>.env</code>、Token、資料庫、日誌、快取或虛擬環境。</li>
+      </ul>
+    </section>
+
+    <footer>文件版本：v0.2 · 更新日期：2026-06-15</footer>
+  </main>
+</body>
+</html>

@@ -11,13 +11,16 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.uv-cache/
 
 # Runtime data
-data/
+data/*
+!data/.gitkeep
 *.db
 *.db-shm
 *.db-wal
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
 # Build and coverage
