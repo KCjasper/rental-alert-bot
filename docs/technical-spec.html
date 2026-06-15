@@ -264,13 +264,13 @@
         <tbody>
           <tr>
             <td><code>subscriptions</code></td>
-            <td><code>id</code>、<code>name</code>、<code>source_url</code>、<code>normalized_url</code>、<code>status</code>、<code>last_checked_at</code>、<code>last_success_at</code></td>
-            <td>保存搜尋訂閱及排程狀態。</td>
+            <td><code>id</code>、<code>name</code>、<code>source_url</code>、<code>normalized_url</code>、<code>status</code>、檢查時間及軟刪除時間</td>
+            <td>保存搜尋訂閱及排程狀態；未刪除訂閱的正規化網址不可重複。</td>
           </tr>
           <tr>
             <td><code>listings</code></td>
-            <td><code>listing_id</code>、<code>url</code>、<code>title</code>、<code>price</code>、<code>location</code>、<code>layout</code>、<code>area</code>、<code>published_at</code></td>
-            <td>保存已解析的房源摘要。</td>
+            <td><code>listing_id</code>、<code>url</code>、<code>title</code>、<code>price_monthly</code>、位置、格局、坪數及首次／最近發現時間</td>
+            <td>保存已解析的最新房源摘要。</td>
           </tr>
           <tr>
             <td><code>subscription_listings</code></td>
@@ -279,7 +279,7 @@
           </tr>
           <tr>
             <td><code>notification_events</code></td>
-            <td><code>id</code>、<code>subscription_id</code>、<code>listing_id</code>、<code>status</code>、<code>attempt_count</code>、<code>sent_at</code>、<code>error_code</code></td>
+            <td><code>id</code>、訂閱與房源 ID、<code>status</code>、<code>attempt_count</code>、<code>sent_at</code>、錯誤代碼及訊息</td>
             <td>追蹤發送成功、重試與失敗。</td>
           </tr>
           <tr>
@@ -293,6 +293,13 @@
         資料庫寫入需使用交易：只有 Telegram 回覆成功後才設定
         <code>notified_at</code>，避免發送失敗卻永久漏掉通知。
       </p>
+      <ul>
+        <li>目前 schema 版本為 v1，透過 SQLite <code>user_version</code> 依序執行 migration。</li>
+        <li>每次連線啟用外鍵、5 秒 busy timeout 與 WAL 模式，降低常駐服務讀寫互相阻塞。</li>
+        <li>訂閱刪除採軟刪除，暫停、恢復及刪除都不會清空房源與通知歷史。</li>
+        <li>資料庫層以 <code>(subscription_id, listing_id)</code> 主鍵去重；通知失敗只寫稽核事件，不寫 <code>notified_at</code>。</li>
+        <li>備份使用 SQLite online backup API，目標檔已存在時拒絕覆蓋，完成後執行完整性檢查。</li>
+      </ul>
     </section>
 
     <section>

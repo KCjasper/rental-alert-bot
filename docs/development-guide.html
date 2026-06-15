@@ -102,10 +102,10 @@
     </nav>
 
     <header>
-      <div class="eyebrow">Developer Guide · Phase 1</div>
+      <div class="eyebrow">Developer Guide · Phase 1–3</div>
       <h1>開發環境操作指南</h1>
       <p class="lead">本文件說明如何建立隔離環境、執行品質檢查，以及驗證應用程式啟動設定。</p>
-      <span class="status">階段 1：已通過</span>
+      <span class="status">階段 1–3：已通過</span>
     </header>
 
     <section>
@@ -147,16 +147,45 @@ uv run rental-alert-bot --check</code></pre>
     </section>
 
     <section>
-      <h2>階段 1 驗收</h2>
+      <h2>初始化資料庫</h2>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\init_database.py</code></pre>
+      <p>
+        預設建立 <code>./data/rental_alert.db</code>。指令可重複執行，只會套用尚未執行的
+        migration；目前 schema 版本為 v1。
+      </p>
+    </section>
+
+    <section>
+      <h2>備份與還原</h2>
+      <pre><code>uv run --frozen python .\scripts\backup_database.py `
+  --destination .\backups\rental-alert-2026-06-15.db</code></pre>
+      <p>
+        備份使用 SQLite online backup API 並執行完整性檢查。若目標檔已存在，工具會停止，
+        不會覆蓋原備份。
+      </p>
+      <p>還原時先停止服務，保留目前資料庫，再將設定指向新的還原檔：</p>
+      <pre><code>$env:DATABASE_PATH = ".\data\rental-alert-restored.db"
+uv run --frozen python .\scripts\init_database.py --path $env:DATABASE_PATH</code></pre>
+      <div class="note">
+        請先把備份檔複製成新的還原檔名，再設定 <code>DATABASE_PATH</code>。
+        不直接覆蓋或刪除目前資料庫，確認服務可讀取後再人工處理舊檔。
+      </div>
+    </section>
+
+    <section>
+      <h2>階段 1–3 驗收</h2>
       <ul>
         <li>全新環境可依本文件安裝。</li>
         <li>缺少必要設定時，啟動檢查回傳失敗。</li>
         <li>Ruff、pytest 與 compileall 全部通過。</li>
         <li>Git 不包含 <code>.env</code>、Token、資料庫、日誌、快取或虛擬環境。</li>
+        <li>重複抓取不會新增重複關係，通知失敗不會誤標成功。</li>
+        <li>程序重啟、暫停恢復及備份重開後，訂閱與去重狀態保持一致。</li>
       </ul>
     </section>
 
-    <footer>文件版本：v0.2 · 更新日期：2026-06-15</footer>
+    <footer>文件版本：v0.3 · 更新日期：2026-06-15</footer>
   </main>
 </body>
 </html>

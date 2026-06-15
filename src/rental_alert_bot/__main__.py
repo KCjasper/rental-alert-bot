@@ -46,8 +46,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     logger.info(
-        "application_skeleton_ready",
-        extra={"message_detail": "Bot services are not implemented in development phase 1."},
+        "application_core_ready",
+        extra={
+            "message_detail": (
+                "591 parsing and SQLite persistence are ready; "
+                "Telegram services are not implemented yet."
+            )
+        },
     )
     return 0
 
