@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 1 已通過，下一步為階段 2</span>
+      <span class="status">目前進度：階段 2 已通過，下一步為階段 3</span>
     </header>
 
     <section>
@@ -327,11 +327,16 @@
           </tr>
           <tr>
             <td>2. 591 網址驗證與資料解析</td>
+            <td><strong>已通過</strong></td>
+            <td>28 項本機測試通過；台北、新北、台中三組公開搜尋頁各解析 30 筆，抽驗共 30 筆，房源 ID、租金與連結皆通過。</td>
+          </tr>
+          <tr>
+            <td>3. SQLite 儲存、狀態與去重</td>
             <td>下一階段</td>
             <td>尚未開始。</td>
           </tr>
           <tr>
-            <td>3–7</td>
+            <td>4–7</td>
             <td>待開發</td>
             <td>必須依序通過前一階段關卡。</td>
           </tr>
@@ -456,6 +461,12 @@
             </section>
           </div>
           <div class="gate">階段關卡：3 組真實搜尋條件皆能取得房源，抽查 20 筆的房源 ID、租金與連結正確率為 100%。</div>
+          <div class="gate">
+            通過紀錄（2026-06-15）：以台北全部、新北整層住家、台中獨立套房三組公開搜尋頁驗證；
+            每組解析 30 筆並抽驗 10 筆，共抽驗 30 筆，缺失 0 筆。網址統一為
+            <code>https://rent.591.com.tw/list</code>，保留搜尋條件並強制加入
+            <code>sort=posttime</code>。
+          </div>
         </article>
 
         <article class="phase" id="phase-3">

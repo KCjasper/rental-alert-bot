@@ -7,7 +7,10 @@ name = "rental-alert-bot"
 version = "0.1.0"
 description = "Personal Telegram alerts for new 591 rental listings."
 requires-python = ">=3.12,<3.15"
-dependencies = []
+dependencies = [
+    "beautifulsoup4>=4.13,<5",
+    "httpx>=0.28,<1",
+]
 
 [project.scripts]
 rental-alert-bot = "rental_alert_bot.__main__:main"
