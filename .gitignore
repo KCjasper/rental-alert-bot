@@ -1,0 +1,33 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+logs/
+*.log
+
+# Build and coverage
+build/
+dist/
+htmlcov/
+.coverage
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

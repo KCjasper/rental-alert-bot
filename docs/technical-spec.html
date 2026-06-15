@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="租屋情報機器人個人版技術規格">
+  <title>租屋情報機器人｜技術規格</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #dfe5ec;
+      --soft: #f5f7fa;
+      --brand: #176b87;
+      --brand-soft: #eaf6f8;
+      --danger: #a23d32;
+      --danger-soft: #fff0ed;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+        "Microsoft JhengHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    main {
+      width: min(1040px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 80px;
+    }
+
+    nav {
+      margin-bottom: 28px;
+      font-size: .92rem;
+    }
+
+    h1, h2, h3 { line-height: 1.3; }
+    h1 { margin: 6px 0 12px; font-size: clamp(2rem, 5vw, 3rem); }
+    h2 {
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
+      font-size: 1.5rem;
+    }
+    h3 { margin: 26px 0 8px; font-size: 1.08rem; }
+    p { margin: 8px 0; }
+    a { color: var(--brand); }
+    ul, ol { padding-left: 1.35rem; }
+
+    .eyebrow {
+      color: var(--brand);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .lead {
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 1.06rem;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+
+    .diagram div {
+      display: grid;
+      min-height: 86px;
+      padding: 12px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .93rem;
+    }
+
+    th, td {
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: var(--soft); }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: #eef2f6;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: .88em;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 18px;
+      border-radius: var(--radius);
+      color: #eef7fa;
+      background: #172033;
+      line-height: 1.55;
+    }
+
+    pre code { padding: 0; color: inherit; background: transparent; }
+
+    .callout {
+      margin: 18px 0;
+      padding: 15px 18px;
+      border-left: 4px solid var(--brand);
+      border-radius: 8px;
+      background: var(--brand-soft);
+    }
+
+    .danger {
+      border-left-color: var(--danger);
+      color: #70271f;
+      background: var(--danger-soft);
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 1040px); padding-top: 24px; }
+      .diagram { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+
+    @media print {
+      main { width: 100%; padding: 0; }
+      a { color: inherit; text-decoration: none; }
+      table, pre { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav><a href="../index.html">← 返回產品規格</a></nav>
+    <header>
+      <div class="eyebrow">Technical Specification · v0.1</div>
+      <h1>租屋情報機器人技術規格</h1>
+      <p class="lead">
+        本文件定義個人版 MVP 的架構、資料、介面、錯誤處理與驗收方式，
+        供下一階段直接進入開發。
+      </p>
+    </header>
+
+    <section>
+      <h2>1. 系統架構</h2>
+      <div class="diagram" aria-label="系統資料流">
+        <div>Telegram 使用者</div>
+        <div>Bot 指令處理器</div>
+        <div>排程與訂閱服務</div>
+        <div>591 公開搜尋頁</div>
+        <div>SQLite 狀態資料庫</div>
+      </div>
+      <ul>
+        <li><strong>執行環境：</strong>Python 3.12。</li>
+        <li><strong>Bot：</strong>使用 Telegram Bot API；開發階段採 long polling，Railway 亦可先沿用。</li>
+        <li><strong>抓取：</strong>以 HTTP 請求讀取公開搜尋頁，再用 HTML 解析器抽取房源。</li>
+        <li><strong>儲存：</strong>SQLite 單檔資料庫，部署時掛載 Railway 持久磁碟。</li>
+        <li><strong>排程：</strong>單一常駐程序管理 Bot 與週期性搜尋工作。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2. 存取控制</h2>
+      <p>
+        所有 Telegram 更新必須先比對 <code>AUTHORIZED_TELEGRAM_USER_ID</code>。
+        不符合時不執行指令、不回傳訂閱資料，也不把內容寫入資料庫。
+      </p>
+      <div class="callout">
+        未授權使用者僅收到固定拒絕訊息；日誌只記錄必要的數字 ID 與時間，
+        不記錄 Token、完整訊息內容或個人資料。
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Telegram 介面</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>輸入</th>
+            <th>行為</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/start</code></td><td>確認授權、顯示用途與貼入 591 搜尋網址的操作方式。</td></tr>
+          <tr><td>591 搜尋網址</td><td>驗證網址、正規化查詢參數、讀取現有房源並建立待確認訂閱。</td></tr>
+          <tr><td><code>/subscriptions</code></td><td>列出訂閱編號、名稱、狀態、最近檢查時間與最近結果。</td></tr>
+          <tr><td><code>/pause &lt;id&gt;</code></td><td>暫停指定訂閱；保留歷史與去重資料。</td></tr>
+          <tr><td><code>/resume &lt;id&gt;</code></td><td>恢復指定訂閱；下次排程開始檢查。</td></tr>
+          <tr><td><code>/delete &lt;id&gt;</code></td><td>要求二次確認後刪除訂閱；保留通知稽核紀錄。</td></tr>
+          <tr><td><code>/test &lt;id&gt;</code></td><td>立即抓取一次並回報解析數量，不改變已通知狀態。</td></tr>
+          <tr><td><code>/cancel</code></td><td>取消首次全量通知或目前等待確認的動作。</td></tr>
+          <tr><td><code>/help</code></td><td>顯示指令與常見錯誤說明。</td></tr>
+        </tbody>
+      </table>
+
+      <h3>首次全量通知</h3>
+      <ol>
+        <li>網址驗證成功後先抓取一次，顯示目前房源總數。</li>
+        <li>使用者明確確認後才開始傳送，不將確認前的資料視為已通知。</li>
+        <li>按固定小批次傳送，每批之間節流，避免 Telegram 限流。</li>
+        <li>使用者傳送 <code>/cancel</code> 時停止剩餘批次；已送出的房源仍記為已通知。</li>
+        <li>全量完成後，訂閱狀態轉為啟用並進入週期監看。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>4. 591 網址與抓取規則</h2>
+      <ul>
+        <li>僅接受 HTTPS 且主機名為 <code>rent.591.com.tw</code> 的租屋搜尋網址。</li>
+        <li>拒絕帳號、刊登、管理、短網址及非搜尋結果頁。</li>
+        <li>正規化網址時移除追蹤參數、固定參數順序，並保留實際搜尋條件。</li>
+        <li>解析器需辨識房源唯一 ID；若無法取得，使用經正規化的房源詳情網址作為備援鍵。</li>
+        <li>將結果依刊登時間或頁面最新排序處理；實作時以 591 當下頁面行為確認實際參數。</li>
+        <li>每次檢查預設間隔 300 秒，另加 0 至 30 秒隨機延遲。</li>
+      </ul>
+
+      <div class="callout danger">
+        不登入、不提交表單、不解 CAPTCHA、不使用代理輪替規避限制。
+        收到 403、429、人機驗證頁或明顯封鎖訊號時，停止本輪工作並採退避重試。
+      </div>
+    </section>
+
+    <section>
+      <h2>5. 資料模型</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>資料表</th>
+            <th>主要欄位</th>
+            <th>用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>subscriptions</code></td>
+            <td><code>id</code>、<code>name</code>、<code>source_url</code>、<code>normalized_url</code>、<code>status</code>、<code>last_checked_at</code>、<code>last_success_at</code></td>
+            <td>保存搜尋訂閱及排程狀態。</td>
+          </tr>
+          <tr>
+            <td><code>listings</code></td>
+            <td><code>listing_id</code>、<code>url</code>、<code>title</code>、<code>price</code>、<code>location</code>、<code>layout</code>、<code>area</code>、<code>published_at</code></td>
+            <td>保存已解析的房源摘要。</td>
+          </tr>
+          <tr>
+            <td><code>subscription_listings</code></td>
+            <td><code>subscription_id</code>、<code>listing_id</code>、<code>first_seen_at</code>、<code>notified_at</code></td>
+            <td>建立訂閱與房源的去重關係。</td>
+          </tr>
+          <tr>
+            <td><code>notification_events</code></td>
+            <td><code>id</code>、<code>subscription_id</code>、<code>listing_id</code>、<code>status</code>、<code>attempt_count</code>、<code>sent_at</code>、<code>error_code</code></td>
+            <td>追蹤發送成功、重試與失敗。</td>
+          </tr>
+          <tr>
+            <td><code>pending_actions</code></td>
+            <td><code>action_type</code>、<code>payload</code>、<code>created_at</code>、<code>expires_at</code></td>
+            <td>保存首次全量及刪除動作的二次確認狀態。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        資料庫寫入需使用交易：只有 Telegram 回覆成功後才設定
+        <code>notified_at</code>，避免發送失敗卻永久漏掉通知。
+      </p>
+    </section>
+
+    <section>
+      <h2>6. 排程與去重流程</h2>
+      <ol>
+        <li>取得所有狀態為啟用且已到檢查時間的訂閱。</li>
+        <li>依正規化網址抓取搜尋結果，解析成一致的房源資料結構。</li>
+        <li>將房源與 <code>subscription_listings</code> 比對，找出首次出現且未通知的項目。</li>
+        <li>按照刊登時間由舊到新發送，使 Telegram 對話中的最新物件位於最下方。</li>
+        <li>每筆成功後立即提交通知紀錄；失敗項目留待帶上限的重試。</li>
+        <li>更新最近成功時間、結果數量及下一次檢查時間。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>7. 錯誤處理與告警</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>情況</th>
+            <th>處理</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>網路逾時或 5xx</td><td>指數退避重試；不改變既有去重狀態。</td></tr>
+          <tr><td>403、429 或 CAPTCHA</td><td>停止本輪抓取、延長下次檢查時間並通知管理者。</td></tr>
+          <tr><td>解析結果突然為零</td><td>若前次有資料，視為疑似改版，不將全部房源標記為消失。</td></tr>
+          <tr><td>必要欄位大量缺失</td><td>判定解析器異常，保留原始狀態並發送告警。</td></tr>
+          <tr><td>Telegram 限流</td><td>遵循 API 回傳的等待時間後重試。</td></tr>
+          <tr><td>SQLite 寫入失敗</td><td>回滾交易、停止該輪通知並發送高優先告警。</td></tr>
+        </tbody>
+      </table>
+      <p>同一問題連續失敗達 3 次時發送一次告警；恢復成功時再發送一次恢復通知，避免每 5 分鐘重複洗版。</p>
+    </section>
+
+    <section>
+      <h2>8. 環境設定</h2>
+      <pre><code>TELEGRAM_BOT_TOKEN=
+AUTHORIZED_TELEGRAM_USER_ID=
+DATABASE_PATH=./data/rental_alert.db
+POLL_INTERVAL_SECONDS=300
+POLL_JITTER_SECONDS=30
+REQUEST_TIMEOUT_SECONDS=20
+INITIAL_NOTIFICATION_BATCH_SIZE=10
+TELEGRAM_SEND_DELAY_SECONDS=1.2
+FAILURE_ALERT_THRESHOLD=3
+LOG_LEVEL=INFO
+TZ=Asia/Taipei</code></pre>
+      <ul>
+        <li>真實 Token 與 Telegram User ID 只存於本機 <code>.env</code> 或 Railway Variables。</li>
+        <li><code>.env</code>、資料庫與日誌不得提交 Git。</li>
+        <li>Railway 部署時將 <code>DATABASE_PATH</code> 改為持久磁碟掛載路徑。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. 驗收測試</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>案例</th>
+            <th>通過條件</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>合法搜尋網址</td><td>成功正規化、抓取並顯示現有房源數。</td></tr>
+          <tr><td>惡意或錯誤網址</td><td>拒絕非 591、非 HTTPS、非租屋搜尋頁及偽造子網域。</td></tr>
+          <tr><td>首次全量確認</td><td>確認前不發送；確認後分批送完；取消後停止剩餘項目。</td></tr>
+          <tr><td>新房源去重</td><td>同一房源在後續輪詢與程序重啟後都不重複通知。</td></tr>
+          <tr><td>暫停與恢復</td><td>暫停期間不抓取；恢復後保留既有去重資料。</td></tr>
+          <tr><td>未授權帳號</td><td>不能建立、查看或操作任何訂閱。</td></tr>
+          <tr><td>Telegram 發送失敗</td><td>房源保持未通知狀態，稍後可重試。</td></tr>
+          <tr><td>591 改版或封鎖</td><td>不誤發、不清空狀態，並在門檻後發送告警。</td></tr>
+          <tr><td>服務重啟</td><td>SQLite 資料完整，排程與待通知房源可繼續處理。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>10. 部署前置條件</h2>
+      <ul>
+        <li>由使用者透過 BotFather 建立私人 Telegram Bot，Token 不經聊天傳遞。</li>
+        <li>確認個人 Telegram User ID，填入 Railway 的秘密變數。</li>
+        <li>建立 Railway Hobby 專案、常駐服務及持久磁碟。</li>
+        <li>設定程序健康檢查、重啟策略及支出上限。</li>
+        <li>部署前重新確認 Railway 當期價格與 591 當期服務規範。</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>文件版本：v0.1 · 建立日期：2026-06-15</p>
+      <p>本規格不構成對第三方服務可用性或永久相容性的保證。</p>
+    </footer>
+  </main>
+</body>
+</html>

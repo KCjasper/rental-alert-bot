@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="租屋情報機器人個人版產品規格">
+  <title>租屋情報機器人｜產品規格</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #dfe5ec;
+      --soft: #f5f7fa;
+      --brand: #176b87;
+      --brand-soft: #eaf6f8;
+      --warning: #8a5b00;
+      --warning-soft: #fff7df;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+        "Microsoft JhengHei", sans-serif;
+      line-height: 1.75;
+    }
+
+    main {
+      width: min(960px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 56px 0 80px;
+    }
+
+    header {
+      padding: 36px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(145deg, #fff 30%, var(--brand-soft));
+    }
+
+    h1, h2, h3 { line-height: 1.3; }
+    h1 { margin: 10px 0 12px; font-size: clamp(2rem, 5vw, 3.3rem); }
+    h2 { margin: 48px 0 16px; font-size: 1.55rem; }
+    h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    p { margin: 8px 0; }
+
+    a { color: var(--brand); }
+
+    .eyebrow {
+      color: var(--brand);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .lead {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .status {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-size: .86rem;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .card p { color: var(--muted); }
+
+    .steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .steps li {
+      position: relative;
+      margin: 0 0 12px;
+      padding: 14px 16px 14px 54px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      counter-increment: step;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      top: 13px;
+      left: 15px;
+      display: grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 800;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .95rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: var(--soft); }
+
+    .note {
+      padding: 16px 18px;
+      border-left: 4px solid var(--warning);
+      border-radius: 8px;
+      color: #573b05;
+      background: var(--warning-soft);
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 680px) {
+      main { width: min(100% - 24px, 960px); padding-top: 24px; }
+      header { padding: 24px; }
+      .grid { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+
+    @media print {
+      main { width: 100%; padding: 0; }
+      header, .card { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Product Specification · Personal MVP</div>
+      <h1>租屋情報機器人</h1>
+      <p class="lead">
+        定時監看個人指定的 591 租屋搜尋結果；發現尚未通知過的新房源時，
+        立即透過 Telegram Bot 傳送重點資訊與原始連結。
+      </p>
+      <span class="status">目前階段：規格完成，尚未開發</span>
+    </header>
+
+    <section>
+      <h2>產品目標</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>第一時間掌握新房源</h3>
+          <p>約每 5 分鐘檢查搜尋結果，減少反覆手動開啟 591 App 或網站的時間。</p>
+        </article>
+        <article class="card">
+          <h3>只服務單一使用者</h3>
+          <p>Bot 只接受設定中的 Telegram User ID，不處理註冊、邀請或多人資料隔離。</p>
+        </article>
+        <article class="card">
+          <h3>沿用 591 篩選介面</h3>
+          <p>先在 591 選好地區、租金、格局等條件，再把搜尋結果網址貼給 Bot。</p>
+        </article>
+        <article class="card">
+          <h3>可靠去重</h3>
+          <p>使用 SQLite 保存已看過與已通知的房源，服務重啟後也不重複洗版。</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>個人操作流程</h2>
+      <ol class="steps">
+        <li>在 591 租屋網設定搜尋條件，並選擇以最新房源排序。</li>
+        <li>將搜尋結果網址直接傳給 Telegram Bot。</li>
+        <li>Bot 驗證網址並顯示目前符合條件的房源數量。</li>
+        <li>首次建立訂閱時，由使用者確認是否分批接收全部現有房源。</li>
+        <li>Bot 持續監看，之後只通知尚未出現過的新房源。</li>
+        <li>透過指令查看、暫停、恢復、測試或刪除搜尋訂閱。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>第一版範圍</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>包含</th>
+            <th>不包含</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>多組 591 租屋搜尋網址</td>
+            <td>售屋、店面或其他租屋平台</td>
+          </tr>
+          <tr>
+            <td>Telegram 指令管理訂閱</td>
+            <td>網站後台與手機 App</td>
+          </tr>
+          <tr>
+            <td>新房源通知、去重與首次全量通知</td>
+            <td>自動聯絡房東、預約看房或代替使用者操作 591</td>
+          </tr>
+          <tr>
+            <td>單一授權 Telegram 帳號</td>
+            <td>多人帳號、邀請碼、付款與權限管理</td>
+          </tr>
+          <tr>
+            <td>Railway 常駐部署規格</td>
+            <td>本階段的實際部署與 Telegram Bot 建立</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>通知內容</h2>
+      <div class="card">
+        <p><strong>每筆通知預計包含：</strong>房源標題、月租金、地區與地址摘要、格局、坪數、刊登時間，以及 591 原始頁面連結。</p>
+        <p>第一版不下載或轉存房源圖片，避免額外儲存與內容使用風險。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>里程碑</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>階段</th>
+            <th>成果</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. 專案規格</td>
+            <td>產品規格、技術規格、環境變數範例與 Git 專案</td>
+            <td>本次完成</td>
+          </tr>
+          <tr>
+            <td>2. 本機 MVP</td>
+            <td>591 解析、SQLite 去重、Telegram 指令與自動測試</td>
+            <td>待開發</td>
+          </tr>
+          <tr>
+            <td>3. 實際驗證</td>
+            <td>使用真實搜尋網址與私人 Bot 進行端到端測試</td>
+            <td>待開發</td>
+          </tr>
+          <tr>
+            <td>4. 雲端部署</td>
+            <td>Railway 常駐服務、持久磁碟、健康檢查與告警</td>
+            <td>待開發</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>風險與原則</h2>
+      <div class="note">
+        系統只讀取公開頁面，不登入 591、不破解 CAPTCHA、不規避封鎖。
+        若 591 改版、限制請求或要求人機驗證，該次抓取應停止並通知管理者，
+        不以提高頻率或偽裝方式強行繼續。
+      </div>
+      <p>
+        詳細架構、資料模型與驗收案例請參閱
+        <a href="docs/technical-spec.html">技術規格文件</a>。
+      </p>
+    </section>
+
+    <footer>
+      <p>文件版本：v0.1 · 建立日期：2026-06-15</p>
+      <p>
+        參考：
+        <a href="https://rent.591.com.tw/">591 租屋網</a>、
+        <a href="https://core.telegram.org/bots/api">Telegram Bot API</a>、
+        <a href="https://railway.com/pricing">Railway</a>
+      </p>
+    </footer>
+  </main>
+</body>
+</html>
