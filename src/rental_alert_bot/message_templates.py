@@ -11,12 +11,14 @@ HELP_TEXT = """租屋情報機器人
 
 可用指令：
 /subscriptions 查看訂閱
-/pause <id> 暫停訂閱
-/resume <id> 恢復訂閱
-/delete <id> 刪除訂閱，需再回覆「確認」
-/test <id> 立即測試抓取
-/cancel 取消等待確認的動作
+/pause 暫停訂閱，我會再請你輸入編號
+/resume 恢復訂閱，我會再請你輸入編號
+/delete 刪除訂閱，我會再請你輸入編號並二次確認
+/test 立即測試抓取，我會再請你輸入編號
+/cancel 取消等待確認或等待輸入編號的動作
 /help 顯示本說明
+
+也可以直接輸入 /pause 1、/resume 1、/delete 1、/test 1。
 """
 
 

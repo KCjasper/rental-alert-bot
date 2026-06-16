@@ -62,6 +62,16 @@ def main() -> int:
                 "SELECT COUNT(*) FROM notification_events WHERE status = 'sent'"
             ).fetchone()[0]
         )
+        consumed_subscription_id_prompts = int(
+            connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM pending_actions
+                WHERE action_type = 'await_subscription_id'
+                    AND status = 'consumed'
+                """
+            ).fetchone()[0]
+        )
 
     print(f"database={database_path}")
     print(f"active_subscriptions={active_count}")
@@ -69,6 +79,7 @@ def main() -> int:
     print(f"total_subscriptions={subscription_count}")
     print(f"sent_notifications={sent_count}")
     print(f"unauthorized_rejections={rejected_count}")
+    print(f"consumed_subscription_id_prompts={consumed_subscription_id_prompts}")
     print("commands:")
 
     missing: list[str] = []
@@ -83,6 +94,8 @@ def main() -> int:
         missing.append("subscription")
     if sent_count < 1:
         missing.append("sent notification")
+    if consumed_subscription_id_prompts < 1:
+        missing.append("interactive subscription id prompt")
 
     if missing:
         print("PHASE4_MANUAL_VALIDATION_INCOMPLETE")

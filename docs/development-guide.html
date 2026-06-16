@@ -195,8 +195,9 @@ uv run --frozen python .\scripts\run_telegram_bot.py</code></pre>
           <tr><td>非授權帳號傳訊息</td><td>收到拒絕訊息，資料庫無新增資料。</td></tr>
           <tr><td>貼上 591 搜尋網址</td><td>Bot 顯示目前房源數量，並等待回覆「確認」。</td></tr>
           <tr><td>回覆「確認」</td><td>分批收到現有房源，完成後訂閱變成啟用。</td></tr>
-          <tr><td><code>/cancel</code></td><td>取消等待確認的新增或刪除動作。</td></tr>
-          <tr><td><code>/pause</code>、<code>/resume</code>、<code>/test</code>、<code>/delete</code></td><td>成功與錯誤案例都有清楚回覆。</td></tr>
+          <tr><td><code>/cancel</code></td><td>取消等待確認、等待輸入編號的新增或刪除動作。</td></tr>
+          <tr><td><code>/pause</code>、<code>/resume</code>、<code>/test</code>、<code>/delete</code></td><td>Bot 先提示輸入訂閱編號，回覆數字後成功執行；錯誤案例都有清楚回覆。</td></tr>
+          <tr><td>刪除後再查看與測試</td><td><code>/subscriptions</code> 不再顯示已刪除訂閱，<code>/test</code> 不能再測試已刪除訂閱。</td></tr>
         </tbody>
       </table>
       <p>完成上述操作後，用本機資料庫檢查階段 4 證據：</p>
@@ -207,8 +208,8 @@ uv run --frozen python .\scripts\validate_phase4_manual.py</code></pre>
         這個檢查只讀取指令類型、授權狀態與訂閱狀態，不保存 Telegram 訊息原文。
       </p>
       <div class="note">
-        階段 4 目前已通過假 Telegram API 的自動測試，但尚未完成私人 Bot 實機驗證；
-        未驗證前不得進入階段 5。
+        階段 4 目前已通過假 Telegram API 的自動測試；私人 Bot 實測需重新確認互動式編號流程與刪除後不可操作，
+        未完成前不得進入階段 5。
       </div>
     </section>
 

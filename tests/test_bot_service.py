@@ -180,6 +180,49 @@ def test_subscriptions_pause_resume_and_delete_confirmation(tmp_path: Path) -> N
     assert repo.get_subscription(subscription_id).status is SubscriptionStatus.DELETED
 
 
+def test_subscription_commands_accept_follow_up_id_messages(tmp_path: Path) -> None:
+    page = RentalSearchPage(total_count=10, listings=(listing("90000001"),))
+    bot, repo, telegram, fetcher = service(tmp_path, FakeRentalFetcher(page))
+    subscription_id = create_active_subscription(repo)
+
+    bot.handle_update(update("/pause"))
+    assert "請輸入訂閱編號" in telegram.texts[-1]
+    bot.handle_update(update(str(subscription_id)))
+    assert repo.get_subscription(subscription_id).status is SubscriptionStatus.PAUSED
+
+    bot.handle_update(update("/resume"))
+    assert "請輸入訂閱編號" in telegram.texts[-1]
+    bot.handle_update(update(str(subscription_id)))
+    assert repo.get_subscription(subscription_id).status is SubscriptionStatus.ACTIVE
+
+    bot.handle_update(update("/test"))
+    assert "請輸入訂閱編號" in telegram.texts[-1]
+    bot.handle_update(update(str(subscription_id)))
+    assert fetcher.fetched_urls == ["https://rent.591.com.tw/list?region=1&sort=posttime"]
+    assert "測試完成" in telegram.texts[-1]
+
+    bot.handle_update(update("/delete"))
+    assert "請輸入訂閱編號" in telegram.texts[-1]
+    bot.handle_update(update(str(subscription_id)))
+    assert "請回覆「確認」" in telegram.texts[-1]
+    bot.handle_update(update("確認"))
+    assert repo.get_subscription(subscription_id).status is SubscriptionStatus.DELETED
+
+
+def test_deleted_subscription_is_hidden_and_cannot_be_tested(tmp_path: Path) -> None:
+    bot, repo, telegram, fetcher = service(tmp_path)
+    subscription_id = create_active_subscription(repo)
+    repo.delete_subscription(subscription_id)
+
+    bot.handle_update(update("/subscriptions"))
+    assert "目前沒有訂閱" in telegram.texts[-1]
+
+    bot.handle_update(update(f"/test {subscription_id}"))
+
+    assert fetcher.fetched_urls == []
+    assert "was not found" in telegram.texts[-1]
+
+
 def test_test_command_fetches_without_changing_dedup_state(tmp_path: Path) -> None:
     page = RentalSearchPage(total_count=10, listings=(listing("90000001"),))
     bot, repo, telegram, fetcher = service(tmp_path, FakeRentalFetcher(page))

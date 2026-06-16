@@ -211,11 +211,11 @@
           <tr><td><code>/start</code></td><td>確認授權、顯示用途與貼入 591 搜尋網址的操作方式。</td></tr>
           <tr><td>591 搜尋網址</td><td>驗證網址、正規化查詢參數、讀取現有房源並建立待確認訂閱。</td></tr>
           <tr><td><code>/subscriptions</code></td><td>列出訂閱編號、名稱、狀態、最近檢查時間與最近結果。</td></tr>
-          <tr><td><code>/pause &lt;id&gt;</code></td><td>暫停指定訂閱；保留歷史與去重資料。</td></tr>
-          <tr><td><code>/resume &lt;id&gt;</code></td><td>恢復指定訂閱；下次排程開始檢查。</td></tr>
-          <tr><td><code>/delete &lt;id&gt;</code></td><td>要求二次確認後刪除訂閱；保留通知稽核紀錄。</td></tr>
-          <tr><td><code>/test &lt;id&gt;</code></td><td>立即抓取一次並回報解析數量，不改變已通知狀態。</td></tr>
-          <tr><td><code>/cancel</code></td><td>取消首次全量通知或目前等待確認的動作。</td></tr>
+          <tr><td><code>/pause</code></td><td>先提示使用者輸入訂閱編號；收到編號後暫停指定訂閱。也相容 <code>/pause &lt;id&gt;</code>。</td></tr>
+          <tr><td><code>/resume</code></td><td>先提示使用者輸入訂閱編號；收到編號後恢復指定訂閱。也相容 <code>/resume &lt;id&gt;</code>。</td></tr>
+          <tr><td><code>/delete</code></td><td>先提示使用者輸入訂閱編號，再要求二次確認後刪除訂閱；保留通知稽核紀錄。也相容 <code>/delete &lt;id&gt;</code>。</td></tr>
+          <tr><td><code>/test</code></td><td>先提示使用者輸入訂閱編號；收到編號後立即抓取一次並回報解析數量，不改變已通知狀態。也相容 <code>/test &lt;id&gt;</code>。</td></tr>
+          <tr><td><code>/cancel</code></td><td>取消首次全量通知、等待輸入編號或目前等待確認的動作。</td></tr>
           <tr><td><code>/help</code></td><td>顯示指令與常見錯誤說明。</td></tr>
           <tr><td><code>確認</code></td><td>確認目前等待中的首次全量通知或刪除動作；也接受 <code>confirm</code>、<code>yes</code>。</td></tr>
         </tbody>
@@ -226,7 +226,7 @@
         <li>網址驗證成功後先抓取一次，顯示目前房源總數。</li>
         <li>使用者明確確認後才開始傳送，不將確認前的資料視為已通知。</li>
         <li>按固定小批次傳送，每批之間節流，避免 Telegram 限流。</li>
-        <li>使用者傳送 <code>/cancel</code> 時取消等待確認的動作；首次加入尚未啟用時，訂閱會標成刪除。</li>
+        <li>使用者傳送 <code>/cancel</code> 時取消等待確認或等待輸入編號的動作；首次加入尚未啟用時，訂閱會標成刪除。</li>
         <li>若傳送中途被取消或失敗，已送出的房源仍記為已通知，未送出的房源保留待後續處理。</li>
         <li>全量完成後，訂閱狀態轉為啟用並進入週期監看。</li>
       </ol>
@@ -301,6 +301,8 @@
         <li>目前 schema 版本為 v1，透過 SQLite <code>user_version</code> 依序執行 migration。</li>
         <li>每次連線啟用外鍵、5 秒 busy timeout 與 WAL 模式，降低常駐服務讀寫互相阻塞。</li>
         <li>訂閱刪除採軟刪除，暫停、恢復及刪除都不會清空房源與通知歷史。</li>
+        <li>已刪除訂閱不得出現在 <code>/subscriptions</code>，也不得再被 <code>/pause</code>、<code>/resume</code>、<code>/delete</code> 或 <code>/test</code> 操作。</li>
+        <li>訂閱編號不可重用；刪除後重新建立相同搜尋條件時，使用新的下一個編號，避免舊通知與稽核紀錄混淆。</li>
         <li>資料庫層以 <code>(subscription_id, listing_id)</code> 主鍵去重；通知失敗只寫稽核事件，不寫 <code>notified_at</code>。</li>
         <li>圖片只保存公開圖片 URL，不保存圖片檔；若圖片 URL 更新，保留最新可用 URL。</li>
         <li>備份使用 SQLite online backup API，目標檔已存在時拒絕覆蓋，完成後執行完整性檢查。</li>

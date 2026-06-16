@@ -147,6 +147,15 @@ class RentalRepository:
             raise SubscriptionNotFoundError(f"subscription {subscription_id} was not found")
         return self._subscription_from_row(row)
 
+    def get_live_subscription(self, subscription_id: int) -> Subscription:
+        with self._database.connect() as connection:
+            row = self._require_subscription(
+                connection,
+                subscription_id,
+                allow_deleted=False,
+            )
+        return self._subscription_from_row(row)
+
     def list_subscriptions(self, *, include_deleted: bool = False) -> tuple[Subscription, ...]:
         query = "SELECT * FROM subscriptions"
         parameters: tuple[object, ...] = ()
