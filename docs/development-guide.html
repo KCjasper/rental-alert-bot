@@ -137,12 +137,18 @@ uv sync --frozen</code></pre>
 
     <section>
       <h2>驗證啟動設定</h2>
-      <pre><code>$env:TELEGRAM_BOT_TOKEN = "僅限本機測試值"
-$env:AUTHORIZED_TELEGRAM_USER_ID = "123456"
-uv run rental-alert-bot --check</code></pre>
+      <p>在專案根目錄建立未提交的 <code>.env</code>：</p>
+      <pre><code>TELEGRAM_BOT_TOKEN=
+AUTHORIZED_TELEGRAM_USER_ID=
+DATABASE_PATH=./data/rental_alert.db
+UV_CACHE_DIR=.uv-cache</code></pre>
+      <p>把 BotFather 給你的 Token 填在 <code>TELEGRAM_BOT_TOKEN</code> 等號後面，把自己的 Telegram User ID 填在 <code>AUTHORIZED_TELEGRAM_USER_ID</code> 等號後面。</p>
+      <p>填好後直接執行：</p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen rental-alert-bot --check</code></pre>
       <div class="note">
         不要把真實 Token 寫入文件、Git 或聊天。正式值只放在未提交的
-        <code>.env</code> 或 Railway Variables；目前程式不會自動讀取 <code>.env</code>。
+        <code>.env</code> 或 Railway Variables；程式會自動讀取專案根目錄的 <code>.env</code>。
       </div>
     </section>
 
@@ -176,13 +182,10 @@ uv run --frozen python .\scripts\init_database.py --path $env:DATABASE_PATH</cod
     <section>
       <h2>手動測試 Telegram Bot</h2>
       <p>
-        先由使用者透過 BotFather 建立私人 Bot，Token 不要貼進聊天；只放在本機環境變數或
+        先由使用者透過 BotFather 建立私人 Bot，Token 不要貼進聊天；只放在本機 <code>.env</code> 或
         Railway Variables。User ID 也只存設定，不提交 Git。
       </p>
-      <pre><code>$env:TELEGRAM_BOT_TOKEN = "你的 Bot Token"
-$env:AUTHORIZED_TELEGRAM_USER_ID = "你的 Telegram User ID"
-$env:DATABASE_PATH = ".\data\rental_alert.db"
-$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\run_telegram_bot.py</code></pre>
       <table>
         <thead>

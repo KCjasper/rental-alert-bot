@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from rental_alert_bot.config import ConfigurationError, Settings
+from rental_alert_bot.config import ConfigurationError, Settings, load_dotenv_file
 
 
 def valid_environment() -> dict[str, str]:
@@ -35,6 +35,64 @@ def test_loads_defaults() -> None:
     assert settings.poll_interval_seconds == 300
     assert settings.poll_jitter_seconds == 30
     assert settings.timezone == "Asia/Taipei"
+
+
+def test_loads_settings_from_dotenv_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    token_key = "TELEGRAM_BOT_TOKEN"
+    user_id_key = "AUTHORIZED_TELEGRAM_USER_ID"
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text(
+        "\n".join(
+            [
+                f"{token_key}='test-token'",
+                f'{user_id_key}="123456"',
+                "DATABASE_PATH=./data/from-dotenv.db",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("AUTHORIZED_TELEGRAM_USER_ID", raising=False)
+    monkeypatch.delenv("DATABASE_PATH", raising=False)
+
+    settings = Settings.from_environment(require_secrets=True, dotenv_path=dotenv_path)
+
+    assert settings.telegram_bot_token == "test-token"
+    assert settings.authorized_telegram_user_id == 123456
+    assert settings.database_path == Path("data/from-dotenv.db")
+
+
+def test_environment_values_override_dotenv_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    token_key = "TELEGRAM_BOT_TOKEN"
+    user_id_key = "AUTHORIZED_TELEGRAM_USER_ID"
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text(
+        "\n".join(
+            [
+                f"{token_key}=dotenv-token",
+                f"{user_id_key}=111111",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "environment-token")
+    monkeypatch.setenv("AUTHORIZED_TELEGRAM_USER_ID", "222222")
+
+    settings = Settings.from_environment(require_secrets=True, dotenv_path=dotenv_path)
+
+    assert settings.telegram_bot_token == "environment-token"
+    assert settings.authorized_telegram_user_id == 222222
+
+
+def test_load_dotenv_file_rejects_invalid_lines(tmp_path: Path) -> None:
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text("TELEGRAM_BOT_TOKEN\n", encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="KEY=VALUE"):
+        load_dotenv_file(dotenv_path)
 
 
 def test_rejects_invalid_poll_interval() -> None:

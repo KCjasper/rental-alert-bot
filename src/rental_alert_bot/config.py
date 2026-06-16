@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +17,49 @@ def _required_value(environment: Mapping[str, str], name: str) -> str:
     if not value:
         raise ConfigurationError(f"{name} is required")
     return value
+
+
+def _strip_optional_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
+
+
+def load_dotenv_file(path: Path | str = ".env") -> dict[str, str]:
+    dotenv_path = Path(path)
+    if not dotenv_path.exists():
+        return {}
+
+    values: dict[str, str] = {}
+    for line_number, raw_line in enumerate(dotenv_path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line.removeprefix("export ").strip()
+        if "=" not in line:
+            raise ConfigurationError(f"{dotenv_path}:{line_number} must use KEY=VALUE")
+
+        name, raw_value = line.split("=", 1)
+        name = name.strip()
+        if not name:
+            raise ConfigurationError(f"{dotenv_path}:{line_number} contains an empty key")
+        values[name] = _strip_optional_quotes(raw_value.strip())
+    return values
+
+
+def _merged_environment(
+    environment: Mapping[str, str] | None,
+    dotenv_path: Path | str | None,
+) -> Mapping[str, str]:
+    if environment is not None:
+        return environment
+
+    merged: MutableMapping[str, str] = {}
+    if dotenv_path is not None:
+        merged.update(load_dotenv_file(dotenv_path))
+    merged.update(os.environ)
+    return merged
 
 
 def _positive_integer(
@@ -88,8 +131,9 @@ class Settings:
         environment: Mapping[str, str] | None = None,
         *,
         require_secrets: bool,
+        dotenv_path: Path | str | None = ".env",
     ) -> Settings:
-        values = os.environ if environment is None else environment
+        values = _merged_environment(environment, dotenv_path)
 
         token = _required_value(values, "TELEGRAM_BOT_TOKEN") if require_secrets else ""
         user_id_raw = (
