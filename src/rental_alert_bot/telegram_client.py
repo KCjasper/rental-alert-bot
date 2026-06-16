@@ -66,7 +66,11 @@ class TelegramClient:
         if offset is not None:
             payload["offset"] = offset
 
-        result = self._request("getUpdates", payload)
+        result = self._request(
+            "getUpdates",
+            payload,
+            request_timeout_seconds=timeout_seconds + 10,
+        )
         return tuple(TelegramUpdate.from_api(item) for item in result)
 
     def send_message(self, chat_id: int, text: str) -> None:
@@ -79,11 +83,21 @@ class TelegramClient:
             },
         )
 
-    def _request(self, method: str, payload: dict[str, Any]) -> Any:
+    def _request(
+        self,
+        method: str,
+        payload: dict[str, Any],
+        *,
+        request_timeout_seconds: float | None = None,
+    ) -> Any:
         last_error: Exception | None = None
         for attempt in range(1, self._max_attempts + 1):
             try:
-                response = self._client.post(f"{self._base_url}/{method}", json=payload)
+                response = self._client.post(
+                    f"{self._base_url}/{method}",
+                    json=payload,
+                    timeout=request_timeout_seconds,
+                )
             except httpx.RequestError as exc:
                 last_error = exc
             else:

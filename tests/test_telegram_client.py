@@ -49,6 +49,20 @@ def test_get_updates_parses_message_updates() -> None:
     assert updates[0].message.from_user.id == 123456
 
 
+def test_get_updates_uses_longer_http_timeout_than_long_polling() -> None:
+    observed_read_timeout: float | None = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal observed_read_timeout
+        observed_read_timeout = request.extensions["timeout"]["read"]
+        return httpx.Response(200, json={"ok": True, "result": []})
+
+    with TelegramClient("test-token", transport=httpx.MockTransport(handler)) as client:
+        assert client.get_updates(timeout_seconds=30) == ()
+
+    assert observed_read_timeout == 40
+
+
 def test_retries_flood_control_using_retry_after() -> None:
     attempts = 0
     delays: list[float] = []

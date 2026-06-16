@@ -196,3 +196,13 @@ def test_unknown_text_is_rejected(tmp_path: Path) -> None:
     bot.handle_update(update("hello"))
 
     assert "591 租屋搜尋網址" in telegram.texts[-1]
+
+
+def test_short_share_url_returns_clear_error(tmp_path: Path) -> None:
+    bot, repo, telegram, fetcher = service(tmp_path)
+
+    bot.handle_update(update("https://591.to/2n5g"))
+
+    assert repo.list_subscriptions() == ()
+    assert fetcher.fetched_urls == []
+    assert "短網址或分享連結目前不支援" in telegram.texts[-1]

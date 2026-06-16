@@ -17,6 +17,7 @@ from rental_alert_bot.message_templates import (
     test_result_message,
     unauthorized_message,
 )
+from rental_alert_bot.rental_parser import RentalPageError
 from rental_alert_bot.rental_url import RentalUrlError, normalize_rental_search_url
 from rental_alert_bot.repository import (
     DuplicateSubscriptionError,
@@ -107,7 +108,15 @@ class BotService:
                     message.chat.id,
                     "我只接受 591 租屋搜尋網址或 /help 中列出的指令。",
                 )
-        except (RentalUrlError, RepositoryError, InvalidSubscriptionStateError) as exc:
+        except RentalUrlError:
+            self._telegram.send_message(
+                message.chat.id,
+                "操作失敗：請貼上 591 租屋搜尋結果頁網址，例如 "
+                "https://rent.591.com.tw/list?region=1。短網址或分享連結目前不支援。",
+            )
+        except RentalPageError as exc:
+            self._telegram.send_message(message.chat.id, f"讀取 591 失敗：{exc}")
+        except (RepositoryError, InvalidSubscriptionStateError) as exc:
             self._telegram.send_message(message.chat.id, f"操作失敗：{exc}")
 
     def _is_authorized(self, message: TelegramMessage) -> bool:
