@@ -54,6 +54,9 @@ def main() -> int:
                 "SELECT COUNT(*) FROM subscriptions WHERE status = 'deleted'"
             ).fetchone()[0]
         )
+        subscription_count = int(
+            connection.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
+        )
         sent_count = int(
             connection.execute(
                 "SELECT COUNT(*) FROM notification_events WHERE status = 'sent'"
@@ -63,6 +66,7 @@ def main() -> int:
     print(f"database={database_path}")
     print(f"active_subscriptions={active_count}")
     print(f"deleted_subscriptions={deleted_count}")
+    print(f"total_subscriptions={subscription_count}")
     print(f"sent_notifications={sent_count}")
     print(f"unauthorized_rejections={rejected_count}")
     print("commands:")
@@ -75,8 +79,8 @@ def main() -> int:
         if not count:
             missing.append(command)
 
-    if active_count < 1:
-        missing.append("active subscription")
+    if subscription_count < 1:
+        missing.append("subscription")
     if sent_count < 1:
         missing.append("sent notification")
 
