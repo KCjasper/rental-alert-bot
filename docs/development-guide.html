@@ -199,6 +199,13 @@ uv run --frozen python .\scripts\run_telegram_bot.py</code></pre>
           <tr><td><code>/pause</code>、<code>/resume</code>、<code>/test</code>、<code>/delete</code></td><td>成功與錯誤案例都有清楚回覆。</td></tr>
         </tbody>
       </table>
+      <p>完成上述操作後，用本機資料庫檢查階段 4 證據：</p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\validate_phase4_manual.py</code></pre>
+      <p>
+        顯示 <code>PHASE4_MANUAL_VALIDATION_OK</code> 才代表階段 4 實機驗證完成。
+        這個檢查只讀取指令類型、授權狀態與訂閱狀態，不保存 Telegram 訊息原文。
+      </p>
       <div class="note">
         階段 4 目前已通過假 Telegram API 的自動測試，但尚未完成私人 Bot 實機驗證；
         未驗證前不得進入階段 5。

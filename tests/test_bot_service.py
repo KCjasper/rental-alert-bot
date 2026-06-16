@@ -105,15 +105,23 @@ def test_rejects_unauthorized_user_without_touching_data(tmp_path: Path) -> None
     assert repo.list_subscriptions() == ()
     assert fetcher.fetched_urls == []
     assert "沒有操作權限" in telegram.texts[-1]
+    events = repo.list_bot_command_events()
+    assert events[-1].command == "url"
+    assert events[-1].authorized is False
+    assert events[-1].status == "rejected"
 
 
 def test_start_and_help_send_usage_text(tmp_path: Path) -> None:
-    bot, _repo, telegram, _fetcher = service(tmp_path)
+    bot, repo, telegram, _fetcher = service(tmp_path)
 
     bot.handle_update(update("/start"))
     bot.handle_update(update("/help"))
 
     assert all("/subscriptions" in text for text in telegram.texts)
+    assert [event.command for event in repo.list_bot_command_events()] == [
+        "/start",
+        "/help",
+    ]
 
 
 def test_url_creates_pending_subscription_then_confirm_sends_initial_listings(
@@ -137,6 +145,7 @@ def test_url_creates_pending_subscription_then_confirm_sends_initial_listings(
     assert repo.list_pending_notifications(subscription.id) == ()
     assert any("新房源：測試房源 90000001" in text for text in telegram.texts)
     assert any("首次全量通知完成，共發送 2 筆" in text for text in telegram.texts)
+    assert [event.command for event in repo.list_bot_command_events()] == ["url", "confirm"]
 
 
 def test_cancel_pending_initial_subscription_soft_deletes_it(tmp_path: Path) -> None:
@@ -149,6 +158,7 @@ def test_cancel_pending_initial_subscription_soft_deletes_it(tmp_path: Path) -> 
     assert repo.list_subscriptions() == ()
     assert repo.get_subscription(subscription.id).status is SubscriptionStatus.DELETED
     assert "已取消" in telegram.texts[-1]
+    assert [event.command for event in repo.list_bot_command_events()] == ["url", "/cancel"]
 
 
 def test_subscriptions_pause_resume_and_delete_confirmation(tmp_path: Path) -> None:
@@ -206,3 +216,7 @@ def test_short_share_url_returns_clear_error(tmp_path: Path) -> None:
     assert repo.list_subscriptions() == ()
     assert fetcher.fetched_urls == []
     assert "短網址或分享連結目前不支援" in telegram.texts[-1]
+    events = repo.list_bot_command_events()
+    assert events[-1].command == "url"
+    assert events[-1].status == "failed"
+    assert events[-1].error_code == "rental_url_error"

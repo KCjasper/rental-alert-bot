@@ -89,6 +89,23 @@ MIGRATIONS = (
     CREATE INDEX idx_pending_actions_open
         ON pending_actions(status, expires_at);
     """,
+    """
+    CREATE TABLE bot_command_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        update_id INTEGER,
+        command TEXT NOT NULL,
+        authorized INTEGER NOT NULL CHECK (authorized IN (0, 1)),
+        status TEXT NOT NULL CHECK (status IN ('accepted', 'rejected', 'failed')),
+        subscription_id INTEGER,
+        created_at TEXT NOT NULL,
+        error_code TEXT,
+        FOREIGN KEY (subscription_id)
+            REFERENCES subscriptions(id) ON DELETE SET NULL
+    );
+
+    CREATE INDEX idx_bot_command_events_command
+        ON bot_command_events(command, status, created_at);
+    """,
 )
 
 LATEST_SCHEMA_VERSION = len(MIGRATIONS)

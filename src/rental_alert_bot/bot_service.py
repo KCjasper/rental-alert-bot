@@ -69,13 +69,31 @@ class BotService:
             return
 
         message = update.message
+        command_label = _command_label(message.text)
+        authorized = self._is_authorized(message)
+        event_status = "accepted"
+        error_code: str | None = None
+
         if not self._is_authorized(message):
             self._telegram.send_message(message.chat.id, unauthorized_message())
+            self._record_command_event(
+                update_id=update.update_id,
+                command=command_label,
+                authorized=False,
+                status="rejected",
+            )
             return
 
         text = (message.text or "").strip()
         if not text:
             self._telegram.send_message(message.chat.id, "請傳送文字指令或 591 搜尋網址。")
+            self._record_command_event(
+                update_id=update.update_id,
+                command=command_label,
+                authorized=authorized,
+                status="failed",
+                error_code="empty_text",
+            )
             return
 
         command, argument = _parse_command(text)
@@ -109,15 +127,29 @@ class BotService:
                     "我只接受 591 租屋搜尋網址或 /help 中列出的指令。",
                 )
         except RentalUrlError:
+            event_status = "failed"
+            error_code = "rental_url_error"
             self._telegram.send_message(
                 message.chat.id,
                 "操作失敗：請貼上 591 租屋搜尋結果頁網址，例如 "
                 "https://rent.591.com.tw/list?region=1。短網址或分享連結目前不支援。",
             )
         except RentalPageError as exc:
+            event_status = "failed"
+            error_code = "rental_page_error"
             self._telegram.send_message(message.chat.id, f"讀取 591 失敗：{exc}")
         except (RepositoryError, InvalidSubscriptionStateError) as exc:
+            event_status = "failed"
+            error_code = "repository_error"
             self._telegram.send_message(message.chat.id, f"操作失敗：{exc}")
+        finally:
+            self._record_command_event(
+                update_id=update.update_id,
+                command=command_label,
+                authorized=authorized,
+                status=event_status,
+                error_code=error_code,
+            )
 
     def _is_authorized(self, message: TelegramMessage) -> bool:
         return (
@@ -263,6 +295,23 @@ class BotService:
     def _expires_at(self) -> datetime:
         return self._clock() + timedelta(minutes=self._settings.pending_action_ttl_minutes)
 
+    def _record_command_event(
+        self,
+        *,
+        update_id: int,
+        command: str,
+        authorized: bool,
+        status: str,
+        error_code: str | None = None,
+    ) -> None:
+        self._repository.record_bot_command_event(
+            update_id=update_id,
+            command=command,
+            authorized=authorized,
+            status=status,
+            error_code=error_code,
+        )
+
 
 def _parse_command(text: str) -> tuple[str | None, str]:
     if not text.startswith("/"):
@@ -271,6 +320,20 @@ def _parse_command(text: str) -> tuple[str | None, str]:
     first, _, rest = text.partition(" ")
     command = first.split("@", 1)[0].lower()
     return command, rest.strip()
+
+
+def _command_label(text: str | None) -> str:
+    value = (text or "").strip()
+    if not value:
+        return "empty"
+    command, _argument = _parse_command(value)
+    if command:
+        return command
+    if _is_confirmation(value):
+        return "confirm"
+    if value.startswith("https://"):
+        return "url"
+    return "text"
 
 
 def _required_id(argument: str) -> int:

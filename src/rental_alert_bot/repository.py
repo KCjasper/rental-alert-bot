@@ -73,6 +73,18 @@ class PendingAction:
     completed_at: datetime | None
 
 
+@dataclass(frozen=True, slots=True)
+class BotCommandEvent:
+    id: int
+    update_id: int | None
+    command: str
+    authorized: bool
+    status: str
+    subscription_id: int | None
+    created_at: datetime
+    error_code: str | None
+
+
 def _utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -474,6 +486,43 @@ class RentalRepository:
         with self._database.connect() as connection:
             return int(connection.execute(query, parameters).fetchone()[0])
 
+    def record_bot_command_event(
+        self,
+        *,
+        command: str,
+        authorized: bool,
+        status: str,
+        update_id: int | None = None,
+        subscription_id: int | None = None,
+        error_code: str | None = None,
+    ) -> None:
+        now = _timestamp(self._clock())
+        with self._database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO bot_command_events (
+                    update_id, command, authorized, status,
+                    subscription_id, created_at, error_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    update_id,
+                    command,
+                    int(authorized),
+                    status,
+                    subscription_id,
+                    now,
+                    error_code,
+                ),
+            )
+
+    def list_bot_command_events(self) -> tuple[BotCommandEvent, ...]:
+        with self._database.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM bot_command_events ORDER BY id",
+            ).fetchall()
+        return tuple(self._bot_command_event_from_row(row) for row in rows)
+
     def _transition_subscription(
         self,
         subscription_id: int,
@@ -605,4 +654,17 @@ class RentalRepository:
             created_at=_datetime(row["created_at"]),  # type: ignore[arg-type]
             expires_at=_datetime(row["expires_at"]),  # type: ignore[arg-type]
             completed_at=_datetime(row["completed_at"]),
+        )
+
+    @staticmethod
+    def _bot_command_event_from_row(row: sqlite3.Row) -> BotCommandEvent:
+        return BotCommandEvent(
+            id=int(row["id"]),
+            update_id=row["update_id"],
+            command=str(row["command"]),
+            authorized=bool(row["authorized"]),
+            status=str(row["status"]),
+            subscription_id=row["subscription_id"],
+            created_at=_datetime(row["created_at"]),  # type: ignore[arg-type]
+            error_code=row["error_code"],
         )

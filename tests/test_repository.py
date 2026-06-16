@@ -256,3 +256,24 @@ def test_notification_failure_requires_existing_pending_relation(tmp_path: Path)
             "missing",
             error_code="telegram_timeout",
         )
+
+
+def test_records_bot_command_events_without_message_content(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    subscription = create_subscription(repo)
+
+    repo.record_bot_command_event(
+        update_id=123,
+        command="/subscriptions",
+        authorized=True,
+        status="accepted",
+        subscription_id=subscription.id,
+    )
+
+    events = repo.list_bot_command_events()
+    assert len(events) == 1
+    assert events[0].update_id == 123
+    assert events[0].command == "/subscriptions"
+    assert events[0].authorized is True
+    assert events[0].status == "accepted"
+    assert events[0].subscription_id == subscription.id
