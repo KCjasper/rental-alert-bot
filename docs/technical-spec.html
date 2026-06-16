@@ -180,7 +180,7 @@
       <ul>
         <li><strong>執行環境：</strong>Python 3.12。</li>
         <li><strong>Bot：</strong>使用 Telegram Bot API；開發階段採 long polling，Railway 亦可先沿用。</li>
-        <li><strong>抓取：</strong>以 HTTP 請求讀取公開搜尋頁，再用 HTML 解析器抽取房源。</li>
+        <li><strong>抓取：</strong>以 HTTP 請求讀取公開搜尋頁，再用 HTML 解析器抽取房源與公開首圖網址。</li>
         <li><strong>儲存：</strong>SQLite 單檔資料庫，部署時掛載 Railway 持久磁碟。</li>
         <li><strong>排程：</strong>單一常駐程序管理 Bot 與週期性搜尋工作。</li>
       </ul>
@@ -241,6 +241,8 @@
         <li>正規化時移除追蹤、分頁及既有排序參數，固定參數順序，保留搜尋條件並加入 <code>sort=posttime</code>。</li>
         <li>公開搜尋頁以 <code>div.item[data-id]</code> 為房源節點，房源 ID 必須存在且同頁不得重複。</li>
         <li>標題及連結取自 <code>.item-info-title a.link</code>，租金取自 <code>.item-info-price strong</code>，其餘欄位取自 <code>.item-info-txt</code>。</li>
+        <li>圖片只解析列表或詳情頁公開可見的首張房源圖；不登入、不解鎖相簿、不批量下載所有照片。</li>
+        <li>圖片網址需正規化為 HTTPS，且只允許 591 或其公開圖片 CDN 網域；無法判定來源時不附圖。</li>
         <li>單頁必要結構缺失超過 20% 時，整頁判定解析失敗，不輸出部分結果供後續通知。</li>
         <li>HTTP 逾時預設 20 秒；網路錯誤與 5xx 最多嘗試 3 次，等待 1、2 秒後重試。</li>
         <li>每次檢查預設間隔 300 秒，另加 0 至 30 秒隨機延遲。</li>
@@ -271,7 +273,7 @@
           </tr>
           <tr>
             <td><code>listings</code></td>
-            <td><code>listing_id</code>、<code>url</code>、<code>title</code>、<code>price_monthly</code>、位置、格局、坪數及首次／最近發現時間</td>
+            <td><code>listing_id</code>、<code>url</code>、<code>image_url</code>、<code>title</code>、<code>price_monthly</code>、位置、格局、坪數及首次／最近發現時間</td>
             <td>保存已解析的最新房源摘要。</td>
           </tr>
           <tr>
@@ -300,6 +302,7 @@
         <li>每次連線啟用外鍵、5 秒 busy timeout 與 WAL 模式，降低常駐服務讀寫互相阻塞。</li>
         <li>訂閱刪除採軟刪除，暫停、恢復及刪除都不會清空房源與通知歷史。</li>
         <li>資料庫層以 <code>(subscription_id, listing_id)</code> 主鍵去重；通知失敗只寫稽核事件，不寫 <code>notified_at</code>。</li>
+        <li>圖片只保存公開圖片 URL，不保存圖片檔；若圖片 URL 更新，保留最新可用 URL。</li>
         <li>備份使用 SQLite online backup API，目標檔已存在時拒絕覆蓋，完成後執行完整性檢查。</li>
       </ul>
     </section>
@@ -330,6 +333,7 @@
           <tr><td>403、429 或 CAPTCHA</td><td>不重試，停止本輪抓取；後續延長下次檢查時間並通知管理者。</td></tr>
           <tr><td>解析結果突然為零</td><td>若前次有資料，視為疑似改版，不將全部房源標記為消失。</td></tr>
           <tr><td>必要欄位大量缺失</td><td>判定解析器異常，保留原始狀態並發送告警。</td></tr>
+          <tr><td>圖片解析或傳送失敗</td><td>不阻擋文字通知；記錄圖片失敗事件，房源仍可標記為已文字通知。</td></tr>
           <tr><td>Telegram 限流</td><td>讀取 Bot API 回傳的 <code>retry_after</code> 秒數後重試，最多 3 次。</td></tr>
           <tr><td>SQLite 寫入失敗</td><td>回滾交易、停止該輪通知並發送高優先告警。</td></tr>
         </tbody>
@@ -371,6 +375,7 @@ TZ=Asia/Taipei</code></pre>
           <tr><td>惡意或錯誤網址</td><td>拒絕非 591、非 HTTPS、非租屋搜尋頁及偽造子網域。</td></tr>
           <tr><td>首次全量確認</td><td>確認前不發送；確認後分批送完；取消後停止剩餘項目。</td></tr>
           <tr><td>新房源去重</td><td>同一房源在後續輪詢與程序重啟後都不重複通知。</td></tr>
+          <tr><td>房源圖片</td><td>可附帶公開首圖；圖片與房源 ID 人工抽查一致，圖片失敗時仍有文字通知。</td></tr>
           <tr><td>暫停與恢復</td><td>暫停期間不抓取；恢復後保留既有去重資料。</td></tr>
           <tr><td>未授權帳號</td><td>不能建立、查看或操作任何訂閱。</td></tr>
           <tr><td>Telegram 發送失敗</td><td>房源保持未通知狀態，稍後可重試。</td></tr>
