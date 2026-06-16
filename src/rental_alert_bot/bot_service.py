@@ -115,14 +115,14 @@ class BotService:
                 self._handle_test(message, argument)
             elif command == "/cancel":
                 self._handle_cancel(message)
+            elif _is_confirmation(text):
+                self._handle_confirmation(message)
             elif (
                 command is None
                 and not text.startswith("https://")
                 and self._has_pending_subscription_id_request()
             ):
                 self._handle_pending_subscription_id(message, text)
-            elif _is_confirmation(text):
-                self._handle_confirmation(message)
             elif text.startswith("https://"):
                 self._handle_search_url(message, text)
             elif command:
@@ -225,6 +225,7 @@ class BotService:
         self._request_delete_confirmation(message, _required_id(argument))
 
     def _request_delete_confirmation(self, message: TelegramMessage, subscription_id: int) -> None:
+        self._cancel_pending_subscription_id_requests()
         subscription = self._repository.get_live_subscription(subscription_id)
         self._repository.create_pending_action(
             subscription_id=subscription.id,
@@ -254,6 +255,7 @@ class BotService:
         )
 
     def _request_subscription_id(self, message: TelegramMessage, operation: str) -> None:
+        self._cancel_pending_subscription_id_requests()
         self._repository.create_pending_action(
             action_type="await_subscription_id",
             payload={"operation": operation},
@@ -272,6 +274,12 @@ class BotService:
             is not None
         )
 
+    def _cancel_pending_subscription_id_requests(self) -> None:
+        while action := self._repository.find_latest_pending_action(
+            action_type="await_subscription_id",
+        ):
+            self._repository.complete_pending_action(action.id, cancel=True)
+
     def _handle_pending_subscription_id(self, message: TelegramMessage, text: str) -> None:
         action = self._repository.find_latest_pending_action(
             action_type="await_subscription_id",
@@ -289,6 +297,7 @@ class BotService:
             )
             return
 
+        self._repository.complete_pending_action(action.id)
         operation = str(action.payload.get("operation", ""))
         if operation == "pause":
             self._pause_by_id(message, subscription_id)
@@ -302,8 +311,6 @@ class BotService:
             self._telegram.send_message(message.chat.id, "未知的等待動作，請輸入 /cancel。")
             return
 
-        self._repository.complete_pending_action(action.id)
-
     def _handle_cancel(self, message: TelegramMessage) -> None:
         action = self._repository.find_latest_pending_action()
         if action is None:
@@ -316,7 +323,7 @@ class BotService:
         self._telegram.send_message(message.chat.id, "已取消目前等待確認的動作。")
 
     def _handle_confirmation(self, message: TelegramMessage) -> None:
-        action = self._repository.find_latest_pending_action()
+        action = self._find_latest_confirmation_action()
         if action is None:
             self._telegram.send_message(message.chat.id, "目前沒有等待確認的動作。")
             return
@@ -330,6 +337,19 @@ class BotService:
             self._telegram.send_message(message.chat.id, f"已刪除訂閱 #{subscription_id}。")
         else:
             self._telegram.send_message(message.chat.id, "未知的確認動作，請輸入 /cancel。")
+
+    def _find_latest_confirmation_action(self) -> PendingAction | None:
+        actions = [
+            action
+            for action in (
+                self._repository.find_latest_pending_action(
+                    action_type="confirm_initial_delivery",
+                ),
+                self._repository.find_latest_pending_action(action_type="confirm_delete"),
+            )
+            if action is not None
+        ]
+        return max(actions, key=lambda action: action.id) if actions else None
 
     def _deliver_initial_listings(
         self,

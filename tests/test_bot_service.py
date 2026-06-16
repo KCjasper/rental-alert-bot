@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from rental_alert_bot.bot_service import BotService, BotServiceSettings
@@ -92,6 +92,15 @@ def create_active_subscription(repo: RentalRepository) -> int:
         normalized_url="https://rent.591.com.tw/list?region=1&sort=posttime",
     )
     repo.activate_subscription(subscription.id)
+    return subscription.id
+
+
+def create_pending_subscription(repo: RentalRepository) -> int:
+    subscription = repo.create_subscription(
+        name="待確認測試",
+        source_url="https://rent.591.com.tw/list?region=1",
+        normalized_url="https://rent.591.com.tw/list?region=1&sort=posttime",
+    )
     return subscription.id
 
 
@@ -207,6 +216,28 @@ def test_subscription_commands_accept_follow_up_id_messages(tmp_path: Path) -> N
     assert "請回覆「確認」" in telegram.texts[-1]
     bot.handle_update(update("確認"))
     assert repo.get_subscription(subscription_id).status is SubscriptionStatus.DELETED
+
+
+def test_delete_confirmation_ignores_stale_subscription_id_prompt(tmp_path: Path) -> None:
+    bot, repo, telegram, _fetcher = service(tmp_path)
+    subscription_id = create_pending_subscription(repo)
+    stale_action = repo.create_pending_action(
+        action_type="await_subscription_id",
+        payload={"operation": "resume"},
+        expires_at=NOW + timedelta(minutes=30),
+    )
+
+    bot.handle_update(update("/delete"))
+    assert repo.get_pending_action(stale_action.id).status == "cancelled"
+    assert "請輸入訂閱編號" in telegram.texts[-1]
+
+    bot.handle_update(update(str(subscription_id)))
+    assert "請回覆「確認」" in telegram.texts[-1]
+
+    bot.handle_update(update("確認"))
+
+    assert repo.get_subscription(subscription_id).status is SubscriptionStatus.DELETED
+    assert "已刪除" in telegram.texts[-1]
 
 
 def test_deleted_subscription_is_hidden_and_cannot_be_tested(tmp_path: Path) -> None:
