@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 3 已通過，下一步為階段 4</span>
+      <span class="status">目前進度：階段 4 已完成本機實作，等待私人 Bot 驗證</span>
     </header>
 
     <section>
@@ -337,13 +337,13 @@
           </tr>
           <tr>
             <td>4. Telegram Bot 操作與通知</td>
-            <td>下一階段</td>
-            <td>尚未開始。</td>
+            <td><strong>待實機驗證</strong></td>
+            <td>57 項本機測試通過；已完成授權、指令、通知模板、首次全量確認、取消、限流重試與手動 long polling 腳本。</td>
           </tr>
           <tr>
             <td>5–7</td>
             <td>待開發</td>
-            <td>必須依序通過前一階段關卡。</td>
+            <td>階段 4 尚需私人測試 Bot 實際驗證後才能進入。</td>
           </tr>
         </tbody>
       </table>
@@ -558,6 +558,12 @@
             </section>
           </div>
           <div class="gate">階段關卡：使用私人測試 Bot 完整走過新增、確認、取消、暫停、恢復、測試與刪除流程，結果全部符合規格。</div>
+          <div class="gate">
+            本機實作紀錄（2026-06-16）：Telegram API client、Bot 指令處理器、繁中通知模板、
+            私人 User ID 授權、首次全量確認、<code>/cancel</code>、限流 <code>retry_after</code>
+            重試及手動 long polling 腳本已完成，57 項自動測試通過。
+            尚未通過本階段關卡，原因是尚未使用私人測試 Bot 與真實 Telegram 帳號實測。
+          </div>
         </article>
 
         <article class="phase" id="phase-5">

@@ -102,10 +102,10 @@
     </nav>
 
     <header>
-      <div class="eyebrow">Developer Guide · Phase 1–3</div>
+      <div class="eyebrow">Developer Guide · Phase 1–4</div>
       <h1>開發環境操作指南</h1>
       <p class="lead">本文件說明如何建立隔離環境、執行品質檢查，以及驗證應用程式啟動設定。</p>
-      <span class="status">階段 1–3：已通過</span>
+      <span class="status">階段 1–3 已通過；階段 4 等待私人 Bot 驗證</span>
     </header>
 
     <section>
@@ -174,7 +174,36 @@ uv run --frozen python .\scripts\init_database.py --path $env:DATABASE_PATH</cod
     </section>
 
     <section>
-      <h2>階段 1–3 驗收</h2>
+      <h2>手動測試 Telegram Bot</h2>
+      <p>
+        先由使用者透過 BotFather 建立私人 Bot，Token 不要貼進聊天；只放在本機環境變數或
+        Railway Variables。User ID 也只存設定，不提交 Git。
+      </p>
+      <pre><code>$env:TELEGRAM_BOT_TOKEN = "你的 Bot Token"
+$env:AUTHORIZED_TELEGRAM_USER_ID = "你的 Telegram User ID"
+$env:DATABASE_PATH = ".\data\rental_alert.db"
+$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_telegram_bot.py</code></pre>
+      <table>
+        <thead>
+          <tr><th>手動驗證項目</th><th>通過條件</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>非授權帳號傳訊息</td><td>收到拒絕訊息，資料庫無新增資料。</td></tr>
+          <tr><td>貼上 591 搜尋網址</td><td>Bot 顯示目前房源數量，並等待回覆「確認」。</td></tr>
+          <tr><td>回覆「確認」</td><td>分批收到現有房源，完成後訂閱變成啟用。</td></tr>
+          <tr><td><code>/cancel</code></td><td>取消等待確認的新增或刪除動作。</td></tr>
+          <tr><td><code>/pause</code>、<code>/resume</code>、<code>/test</code>、<code>/delete</code></td><td>成功與錯誤案例都有清楚回覆。</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        階段 4 目前已通過假 Telegram API 的自動測試，但尚未完成私人 Bot 實機驗證；
+        未驗證前不得進入階段 5。
+      </div>
+    </section>
+
+    <section>
+      <h2>階段 1–4 驗收</h2>
       <ul>
         <li>全新環境可依本文件安裝。</li>
         <li>缺少必要設定時，啟動檢查回傳失敗。</li>
@@ -182,10 +211,12 @@ uv run --frozen python .\scripts\init_database.py --path $env:DATABASE_PATH</cod
         <li>Git 不包含 <code>.env</code>、Token、資料庫、日誌、快取或虛擬環境。</li>
         <li>重複抓取不會新增重複關係，通知失敗不會誤標成功。</li>
         <li>程序重啟、暫停恢復及備份重開後，訂閱與去重狀態保持一致。</li>
+        <li>Bot 指令、授權、確認、取消與通知模板已由自動測試覆蓋。</li>
+        <li>私人 Telegram Bot 實測尚未完成，因此階段 4 尚未通過關卡。</li>
       </ul>
     </section>
 
-    <footer>文件版本：v0.3 · 更新日期：2026-06-15</footer>
+    <footer>文件版本：v0.4 · 更新日期：2026-06-16</footer>
   </main>
 </body>
 </html>

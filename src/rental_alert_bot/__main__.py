@@ -49,8 +49,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "application_core_ready",
         extra={
             "message_detail": (
-                "591 parsing and SQLite persistence are ready; "
-                "Telegram services are not implemented yet."
+                "591 parsing, SQLite persistence, and Telegram command handling are ready; "
+                "scheduler and cloud deployment are not implemented yet."
             )
         },
     )

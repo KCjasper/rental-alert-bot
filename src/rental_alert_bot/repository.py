@@ -421,6 +421,27 @@ class RentalRepository:
             raise RepositoryError(f"pending action {action_id} was not found")
         return self._pending_action_from_row(row)
 
+    def find_latest_pending_action(
+        self,
+        *,
+        action_type: str | None = None,
+    ) -> PendingAction | None:
+        now = _timestamp(self._clock())
+        query = """
+            SELECT *
+            FROM pending_actions
+            WHERE status = 'pending' AND expires_at > ?
+        """
+        parameters: list[object] = [now]
+        if action_type is not None:
+            query += " AND action_type = ?"
+            parameters.append(action_type)
+        query += " ORDER BY id DESC LIMIT 1"
+
+        with self._database.connect() as connection:
+            row = connection.execute(query, parameters).fetchone()
+        return self._pending_action_from_row(row) if row is not None else None
+
     def complete_pending_action(self, action_id: int, *, cancel: bool = False) -> bool:
         now = self._clock()
         target_status = "cancelled" if cancel else "consumed"
