@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
 
 from rental_alert_bot.bot_service import BotService, BotServiceSettings
 from rental_alert_bot.config import Settings
@@ -11,7 +10,8 @@ from rental_alert_bot.database import Database
 from rental_alert_bot.logging_config import configure_logging
 from rental_alert_bot.rental_client import RentalClient
 from rental_alert_bot.repository import RentalRepository
-from rental_alert_bot.telegram_client import TelegramApiError, TelegramClient
+from rental_alert_bot.telegram_client import TelegramClient
+from rental_alert_bot.telegram_polling_service import TelegramPollingService
 
 
 def main() -> int:
@@ -22,7 +22,6 @@ def main() -> int:
     database.initialize()
     repository = RentalRepository(database)
 
-    offset: int | None = None
     with TelegramClient(
         settings.telegram_bot_token,
         timeout_seconds=settings.request_timeout_seconds,
@@ -39,24 +38,8 @@ def main() -> int:
                 send_delay_seconds=settings.telegram_send_delay_seconds,
             ),
         )
-        while True:
-            try:
-                updates = telegram.get_updates(offset=offset, timeout_seconds=30)
-            except TelegramApiError:
-                logger.exception("telegram_get_updates_failed")
-                time.sleep(5)
-                continue
-
-            for update in updates:
-                try:
-                    service.handle_update(update)
-                except Exception:
-                    logger.exception(
-                        "telegram_update_handling_failed",
-                        extra={"update_id": update.update_id},
-                    )
-                finally:
-                    offset = update.update_id + 1
+        logger.info("telegram_bot_polling_started")
+        TelegramPollingService(telegram=telegram, handler=service, logger=logger).run_forever()
 
 
 if __name__ == "__main__":

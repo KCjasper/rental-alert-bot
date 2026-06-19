@@ -343,7 +343,7 @@
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
             <td><strong>開發中</strong></td>
-            <td>已完成一次性與常駐監控服務：檢查到期 active 訂閱、通知新房源、保留失敗待重試，並支援 SIGINT/SIGTERM 優雅停止；圖片與 8 小時驗收尚未完成。</td>
+            <td>已完成一次性監控、常駐監控與本機單一程序入口：可同時執行 Telegram 指令 long polling 與新房源監控；圖片與 8 小時驗收尚未完成。</td>
           </tr>
           <tr>
             <td>6–7</td>
@@ -621,9 +621,11 @@
           <div class="gate">階段關卡：本機連續 8 小時完成至少 90 次排程，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
           <div class="gate">
             開發紀錄（2026-06-20）：已新增一次性與常駐監控服務，
-            <code>scripts/run_monitor_once.py</code>、<code>scripts/run_monitor_loop.py</code>
+            <code>scripts/run_monitor_once.py</code>、<code>scripts/run_monitor_loop.py</code>、
+            <code>scripts/run_local_service.py</code>
             可處理到期 active 訂閱、新房源通知去重、Telegram 發送失敗保留待重試、
-            591 連續失敗告警，以及 SIGINT/SIGTERM 優雅停止。尚未完成圖片通知與 8 小時驗收。
+            591 連續失敗告警、Telegram 指令 long polling，以及 SIGINT/SIGTERM 優雅停止。
+            尚未完成圖片通知與 8 小時驗收。
           </div>
         </article>
 

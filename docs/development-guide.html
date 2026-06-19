@@ -235,9 +235,18 @@ uv run --frozen python .\scripts\run_monitor_once.py</code></pre>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\run_monitor_loop.py</code></pre>
       <p>
-        目前常駐監控尚未和 Telegram 指令 long polling 合併成單一程序；本機測試時可分開啟動
-        <code>run_telegram_bot.py</code> 與 <code>run_monitor_loop.py</code>。
+        若只想測監控，可單獨啟動本腳本；若要同時保留 Telegram 指令操作，請使用下一段的單一程序入口。
       </p>
+    </section>
+
+    <section>
+      <h2>啟動本機完整服務</h2>
+      <p>
+        本機完整服務會在同一個程序內啟動 Telegram 指令 long polling 與新房源監控排程，
+        共用同一個 SQLite repository。收到 <code>Ctrl+C</code> 或 SIGTERM 時會停止兩個 loop。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_local_service.py</code></pre>
     </section>
 
     <section>
