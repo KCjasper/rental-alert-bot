@@ -1,0 +1,97 @@
+"""Read-only operational status reporting for local validation."""
+
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+from rental_alert_bot.database import Database
+
+
+@dataclass(frozen=True, slots=True)
+class MonitorStatus:
+    database_path: Path
+    active_subscriptions: int
+    paused_subscriptions: int
+    due_subscriptions: int
+    pending_notifications: int
+    sent_notifications: int
+    failed_notifications: int
+    latest_check_at: str | None
+
+    def lines(self) -> tuple[str, ...]:
+        return (
+            f"database={self.database_path}",
+            f"active_subscriptions={self.active_subscriptions}",
+            f"paused_subscriptions={self.paused_subscriptions}",
+            f"due_subscriptions={self.due_subscriptions}",
+            f"pending_notifications={self.pending_notifications}",
+            f"sent_notifications={self.sent_notifications}",
+            f"failed_notifications={self.failed_notifications}",
+            f"latest_check_at={self.latest_check_at or 'none'}",
+        )
+
+
+def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
+    with database.connect() as connection:
+        connection.row_factory = sqlite3.Row
+        active_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active'",
+        )
+        paused_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'paused'",
+        )
+        due_count = _count(
+            connection,
+            """
+            SELECT COUNT(*)
+            FROM subscriptions
+            WHERE status = 'active'
+                AND (next_check_at IS NULL OR next_check_at <= ?)
+            """,
+            (now.isoformat(timespec="microseconds"),),
+        )
+        pending_count = _count(
+            connection,
+            """
+            SELECT COUNT(*)
+            FROM subscription_listings AS sl
+            JOIN subscriptions AS s ON s.id = sl.subscription_id
+            WHERE sl.notified_at IS NULL
+                AND s.status IN ('pending', 'active')
+            """,
+        )
+        sent_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM notification_events WHERE status = 'sent'",
+        )
+        failed_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM notification_events WHERE status = 'failed'",
+        )
+        latest_check = connection.execute(
+            "SELECT MAX(last_checked_at) FROM subscriptions",
+        ).fetchone()[0]
+
+    return MonitorStatus(
+        database_path=database.path,
+        active_subscriptions=active_count,
+        paused_subscriptions=paused_count,
+        due_subscriptions=due_count,
+        pending_notifications=pending_count,
+        sent_notifications=sent_count,
+        failed_notifications=failed_count,
+        latest_check_at=latest_check,
+    )
+
+
+def _count(
+    connection: sqlite3.Connection,
+    query: str,
+    parameters: tuple[object, ...] = (),
+) -> int:
+    return int(connection.execute(query, parameters).fetchone()[0])

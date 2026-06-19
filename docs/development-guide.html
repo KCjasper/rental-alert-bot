@@ -250,6 +250,16 @@ uv run --frozen python .\scripts\run_local_service.py</code></pre>
     </section>
 
     <section>
+      <h2>查看監控狀態</h2>
+      <p>
+        這個指令只讀取 SQLite，不會抓 591，也不會發 Telegram；可在階段 5 的長時間驗收期間查看
+        active 訂閱、到期訂閱、待通知、成功與失敗通知數。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\monitor_status.py</code></pre>
+    </section>
+
+    <section>
       <h2>階段 1–4 驗收</h2>
       <ul>
         <li>全新環境可依本文件安裝。</li>

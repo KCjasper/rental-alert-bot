@@ -343,7 +343,7 @@
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
             <td><strong>開發中</strong></td>
-            <td>已完成一次性監控、常駐監控、本機單一程序入口與圖片通知；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
+            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知與健康狀態輸出；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
           </tr>
           <tr>
             <td>6–7</td>
@@ -626,6 +626,7 @@
             可處理到期 active 訂閱、新房源通知去重、Telegram 發送失敗保留待重試、
             591 連續失敗告警、Telegram 指令 long polling，以及 SIGINT/SIGTERM 優雅停止。
             圖片通知已支援公開首圖 URL 保存、Telegram <code>sendPhoto</code> 發送，以及圖片失敗時退回文字通知。
+            <code>scripts/monitor_status.py</code> 可只讀輸出 active、due、pending、sent 與 failed 狀態。
             尚未完成 8 小時驗收與 20 筆圖片人工抽查。
           </div>
         </article>
