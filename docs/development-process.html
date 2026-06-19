@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 4 已完成本機實作，等待私人 Bot 驗證</span>
+      <span class="status">目前進度：階段 5 開發中，已完成一次性新房源監控服務</span>
     </header>
 
     <section>
@@ -337,13 +337,18 @@
           </tr>
           <tr>
             <td>4. Telegram Bot 操作與通知</td>
-            <td><strong>待實機驗證</strong></td>
-            <td>68 項本機測試通過；已完成授權、互動式指令、通知模板、首次全量確認、取消、限流重試與手動 long polling 腳本。</td>
+            <td><strong>已通過</strong></td>
+            <td>69 項本機測試通過；私人 Telegram Bot 實測完成新增、確認、取消、暫停、恢復、測試、刪除與互動式編號流程。</td>
           </tr>
           <tr>
-            <td>5–7</td>
+            <td>5. 排程、整合與本機端到端測試</td>
+            <td><strong>開發中</strong></td>
+            <td>已開始一次性監控服務：檢查到期 active 訂閱、通知新房源、保留失敗待重試；圖片與長時間排程尚未完成。</td>
+          </tr>
+          <tr>
+            <td>6–7</td>
             <td>待開發</td>
-            <td>階段 4 尚需私人測試 Bot 實際驗證；後續新增圖片通知子階段。</td>
+            <td>需待階段 5 通過 8 小時本機穩定性驗收後才能進入部署與正式穩定性驗收。</td>
           </tr>
         </tbody>
       </table>
@@ -566,6 +571,11 @@
             重試及手動 long polling 腳本已完成。
             私人測試發現指令互動流程與刪除後操作邊界需修正；已納入階段 4 驗收項目。
           </div>
+          <div class="gate">
+            通過紀錄（2026-06-20）：<code>scripts/validate_phase4_manual.py</code>
+            顯示 <code>PHASE4_MANUAL_VALIDATION_OK</code>；資料庫證據包含 1 組 active 訂閱、
+            3 組 deleted 訂閱、60 筆已送通知、6 次互動式訂閱編號流程，以及全部必要指令成功紀錄。
+          </div>
         </article>
 
         <article class="phase" id="phase-5">
@@ -609,6 +619,11 @@
             </section>
           </div>
           <div class="gate">階段關卡：本機連續 8 小時完成至少 90 次排程，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
+          <div class="gate">
+            開發紀錄（2026-06-20）：已新增一次性監控服務與
+            <code>scripts/run_monitor_once.py</code>，可處理到期 active 訂閱、新房源通知去重、
+            Telegram 發送失敗保留待重試，以及 591 連續失敗告警。尚未完成長時間常駐排程與圖片通知。
+          </div>
         </article>
 
         <article class="phase" id="phase-6">

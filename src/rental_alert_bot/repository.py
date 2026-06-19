@@ -168,6 +168,20 @@ class RentalRepository:
             rows = connection.execute(query, parameters).fetchall()
         return tuple(self._subscription_from_row(row) for row in rows)
 
+    def list_due_subscriptions(self, due_at: datetime) -> tuple[Subscription, ...]:
+        with self._database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT *
+                FROM subscriptions
+                WHERE status = 'active'
+                    AND (next_check_at IS NULL OR next_check_at <= ?)
+                ORDER BY id
+                """,
+                (_timestamp(due_at),),
+            ).fetchall()
+        return tuple(self._subscription_from_row(row) for row in rows)
+
     def activate_subscription(self, subscription_id: int) -> Subscription:
         return self._transition_subscription(
             subscription_id,

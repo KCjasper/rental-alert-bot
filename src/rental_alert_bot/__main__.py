@@ -50,7 +50,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         extra={
             "message_detail": (
                 "591 parsing, SQLite persistence, and Telegram command handling are ready; "
-                "scheduler and cloud deployment are not implemented yet."
+                "one-shot monitoring is available; long-running scheduler and cloud deployment "
+                "are not implemented yet."
             )
         },
     )

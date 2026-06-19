@@ -105,7 +105,7 @@
       <div class="eyebrow">Developer Guide · Phase 1–4</div>
       <h1>開發環境操作指南</h1>
       <p class="lead">本文件說明如何建立隔離環境、執行品質檢查，以及驗證應用程式啟動設定。</p>
-      <span class="status">階段 1–3 已通過；階段 4 等待私人 Bot 驗證</span>
+      <span class="status">階段 1–4 已通過；下一步進入階段 5</span>
     </header>
 
     <section>
@@ -208,9 +208,21 @@ uv run --frozen python .\scripts\validate_phase4_manual.py</code></pre>
         這個檢查只讀取指令類型、授權狀態與訂閱狀態，不保存 Telegram 訊息原文。
       </p>
       <div class="note">
-        階段 4 目前已通過假 Telegram API 的自動測試；私人 Bot 實測需重新確認互動式編號流程與刪除後不可操作，
-        未完成前不得進入階段 5。
+        階段 4 已完成私人 Bot 實測並通過驗證腳本；後續若修改 Telegram 指令流程，需重新執行本段手動驗證。
       </div>
+    </section>
+
+    <section>
+      <h2>執行一次新房源監控</h2>
+      <p>
+        階段 5 開始後，可先用一次性腳本驗證目前到期的 active 訂閱。它會讀取
+        <code>.env</code>、抓取 591、寫入 SQLite，並只通知尚未通知的新房源。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_monitor_once.py</code></pre>
+      <p>
+        這不是長時間常駐排程；完整 5 分鐘輪詢、優雅停止與 8 小時穩定性驗收仍屬階段 5 後續工作。
+      </p>
     </section>
 
     <section>
@@ -223,11 +235,11 @@ uv run --frozen python .\scripts\validate_phase4_manual.py</code></pre>
         <li>重複抓取不會新增重複關係，通知失敗不會誤標成功。</li>
         <li>程序重啟、暫停恢復及備份重開後，訂閱與去重狀態保持一致。</li>
         <li>Bot 指令、授權、確認、取消與通知模板已由自動測試覆蓋。</li>
-        <li>私人 Telegram Bot 實測尚未完成，因此階段 4 尚未通過關卡。</li>
+        <li>私人 Telegram Bot 實測已通過，階段 4 關卡完成。</li>
       </ul>
     </section>
 
-    <footer>文件版本：v0.4 · 更新日期：2026-06-16</footer>
+    <footer>文件版本：v0.5 · 更新日期：2026-06-20</footer>
   </main>
 </body>
 </html>
