@@ -321,7 +321,9 @@
       </ol>
       <p>
         目前已提供一次性監控執行路徑 <code>scripts/run_monitor_once.py</code>；
-        5 分鐘常駐輪詢、優雅停止與 8 小時穩定性驗收仍在階段 5 後續工作中。
+        常駐監控執行路徑 <code>scripts/run_monitor_loop.py</code> 已支援
+        5 分鐘輪詢、隨機延遲計算及 SIGINT/SIGTERM 優雅停止。
+        Bot 指令 long polling 與監控排程合併成單一程序、圖片通知及 8 小時穩定性驗收仍在階段 5 後續工作中。
       </p>
     </section>
 

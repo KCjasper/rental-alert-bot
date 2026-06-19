@@ -226,6 +226,21 @@ uv run --frozen python .\scripts\run_monitor_once.py</code></pre>
     </section>
 
     <section>
+      <h2>啟動常駐新房源監控</h2>
+      <p>
+        常駐監控會反覆檢查已到期的 active 訂閱；每個訂閱的下一次檢查時間由
+        <code>POLL_INTERVAL_SECONDS</code> 加上 <code>POLL_JITTER_SECONDS</code>
+        決定。收到 <code>Ctrl+C</code> 或 SIGTERM 時會在目前迴圈結束後停止。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_monitor_loop.py</code></pre>
+      <p>
+        目前常駐監控尚未和 Telegram 指令 long polling 合併成單一程序；本機測試時可分開啟動
+        <code>run_telegram_bot.py</code> 與 <code>run_monitor_loop.py</code>。
+      </p>
+    </section>
+
+    <section>
       <h2>階段 1–4 驗收</h2>
       <ul>
         <li>全新環境可依本文件安裝。</li>
