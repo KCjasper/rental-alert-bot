@@ -298,7 +298,7 @@
         <code>notified_at</code>，避免發送失敗卻永久漏掉通知。
       </p>
       <ul>
-        <li>目前 schema 版本為 v1，透過 SQLite <code>user_version</code> 依序執行 migration。</li>
+        <li>目前 schema 版本為 v3，透過 SQLite <code>user_version</code> 依序執行 migration。</li>
         <li>每次連線啟用外鍵、5 秒 busy timeout 與 WAL 模式，降低常駐服務讀寫互相阻塞。</li>
         <li>訂閱刪除採軟刪除，暫停、恢復及刪除都不會清空房源與通知歷史。</li>
         <li>已刪除訂閱不得出現在 <code>/subscriptions</code>，也不得再被 <code>/pause</code>、<code>/resume</code>、<code>/delete</code> 或 <code>/test</code> 操作。</li>
@@ -324,7 +324,8 @@
         常駐監控執行路徑 <code>scripts/run_monitor_loop.py</code> 已支援
         5 分鐘輪詢、隨機延遲計算及 SIGINT/SIGTERM 優雅停止。
         本機完整服務入口 <code>scripts/run_local_service.py</code> 可在同一程序中啟動
-        Bot 指令 long polling 與監控排程；圖片通知及 8 小時穩定性驗收仍在階段 5 後續工作中。
+        Bot 指令 long polling 與監控排程；圖片通知已支援公開首圖 URL、Telegram
+        <code>sendPhoto</code> 與失敗退回文字。8 小時穩定性驗收仍在階段 5 後續工作中。
       </p>
     </section>
 

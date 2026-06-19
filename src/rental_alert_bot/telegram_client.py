@@ -83,6 +83,16 @@ class TelegramClient:
             },
         )
 
+    def send_photo(self, chat_id: int, photo_url: str, caption: str) -> None:
+        self._request(
+            "sendPhoto",
+            {
+                "chat_id": chat_id,
+                "photo": photo_url,
+                "caption": caption,
+            },
+        )
+
     def _request(
         self,
         method: str,

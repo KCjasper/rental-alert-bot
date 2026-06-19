@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
-from rental_alert_bot.listing import RentalSearchPage
+from rental_alert_bot.listing import RentalListing, RentalSearchPage
 from rental_alert_bot.message_templates import listing_notification
 from rental_alert_bot.rental_parser import RentalPageError
 from rental_alert_bot.repository import RentalRepository, Subscription
@@ -17,6 +17,8 @@ from rental_alert_bot.telegram_client import TelegramApiError
 
 class TelegramSender(Protocol):
     def send_message(self, chat_id: int, text: str) -> None: ...
+
+    def send_photo(self, chat_id: int, photo_url: str, caption: str) -> None: ...
 
 
 class RentalFetcher(Protocol):
@@ -116,18 +118,7 @@ class MonitoringService:
         sent_count = 0
         failed_count = 0
         for pending in self.repository.list_pending_notifications(subscription_id):
-            try:
-                self.telegram.send_message(
-                    self.settings.alert_chat_id,
-                    listing_notification(pending.listing),
-                )
-            except TelegramApiError as exc:
-                self.repository.record_notification_failure(
-                    subscription_id,
-                    pending.listing.listing_id,
-                    error_code=f"telegram_{exc.error_code or 'error'}",
-                    error_message=str(exc),
-                )
+            if not self._send_listing_notification(subscription_id, pending.listing):
                 failed_count += 1
                 continue
 
@@ -138,6 +129,37 @@ class MonitoringService:
             sent_count += 1
 
         return sent_count, failed_count
+
+    def _send_listing_notification(self, subscription_id: int, listing: RentalListing) -> bool:
+        text = listing_notification(listing)
+        if listing.image_url:
+            try:
+                self.telegram.send_photo(
+                    self.settings.alert_chat_id,
+                    listing.image_url,
+                    text,
+                )
+                return True
+            except TelegramApiError as exc:
+                self.repository.record_notification_failure(
+                    subscription_id,
+                    listing.listing_id,
+                    error_code=f"telegram_photo_{exc.error_code or 'error'}",
+                    error_message=str(exc),
+                )
+
+        try:
+            self.telegram.send_message(self.settings.alert_chat_id, text)
+        except TelegramApiError as exc:
+            self.repository.record_notification_failure(
+                subscription_id,
+                listing.listing_id,
+                error_code=f"telegram_{exc.error_code or 'error'}",
+                error_message=str(exc),
+            )
+            return False
+
+        return True
 
     def _record_subscription_failure(
         self,

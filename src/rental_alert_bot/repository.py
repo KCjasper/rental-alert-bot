@@ -265,8 +265,9 @@ class RentalRepository:
                     """
                     INSERT INTO listings (
                         listing_id, url, title, price_monthly, location, category,
-                        layout, area_ping, floor, published_text, first_seen_at, last_seen_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        layout, area_ping, floor, published_text, image_url,
+                        first_seen_at, last_seen_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(listing_id) DO UPDATE SET
                         url = excluded.url,
                         title = excluded.title,
@@ -277,6 +278,7 @@ class RentalRepository:
                         area_ping = excluded.area_ping,
                         floor = excluded.floor,
                         published_text = excluded.published_text,
+                        image_url = excluded.image_url,
                         last_seen_at = excluded.last_seen_at
                     """,
                     (
@@ -290,6 +292,7 @@ class RentalRepository:
                         listing.area_ping,
                         listing.floor,
                         listing.published_text,
+                        listing.image_url,
                         now,
                         now,
                     ),
@@ -661,6 +664,7 @@ class RentalRepository:
                 area_ping=row["area_ping"],
                 floor=row["floor"],
                 published_text=row["published_text"],
+                image_url=row["image_url"],
             ),
             first_seen_at=_datetime(row["first_seen_at"]),  # type: ignore[arg-type]
             attempt_count=int(row["attempt_count"]),

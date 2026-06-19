@@ -33,6 +33,9 @@ def test_parses_listing_fields() -> None:
     assert first.area_ping == 8.5
     assert first.floor == "3F/5F"
     assert first.published_text == "3分鐘內更新"
+    assert first.image_url == "https://hp1.591.com.tw/house/active/2026/06/20/90000001.jpg"
+
+    assert page.listings[1].image_url is None
 
 
 def test_accepts_empty_search_results() -> None:

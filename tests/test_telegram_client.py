@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -17,6 +19,26 @@ def test_send_message_posts_to_telegram_api() -> None:
     assert requests[0].url.path == "/bottest-token/sendMessage"
     assert requests[0].read()
     assert b"hello" in requests[0].content
+
+
+def test_send_photo_posts_photo_url_and_caption() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 1}})
+
+    with TelegramClient("test-token", transport=httpx.MockTransport(handler)) as client:
+        client.send_photo(
+            123456,
+            "https://hp1.591.com.tw/house.jpg",
+            "新房源：測試",
+        )
+
+    payload = json.loads(requests[0].content)
+    assert requests[0].url.path == "/bottest-token/sendPhoto"
+    assert payload["photo"] == "https://hp1.591.com.tw/house.jpg"
+    assert payload["caption"] == "新房源：測試"
 
 
 def test_get_updates_parses_message_updates() -> None:

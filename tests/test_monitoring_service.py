@@ -13,14 +13,26 @@ CHAT_ID = 123456
 
 
 class FakeTelegram:
-    def __init__(self, *, fail_after: int | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        fail_after: int | None = None,
+        fail_photos: bool = False,
+    ) -> None:
         self.sent_messages: list[tuple[int, str]] = []
+        self.sent_photos: list[tuple[int, str, str]] = []
         self.fail_after = fail_after
+        self.fail_photos = fail_photos
 
     def send_message(self, chat_id: int, text: str) -> None:
         if self.fail_after is not None and len(self.sent_messages) >= self.fail_after:
             raise TelegramApiError("telegram failed", error_code=500)
         self.sent_messages.append((chat_id, text))
+
+    def send_photo(self, chat_id: int, photo_url: str, caption: str) -> None:
+        if self.fail_photos:
+            raise TelegramApiError("telegram photo failed", error_code=400)
+        self.sent_photos.append((chat_id, photo_url, caption))
 
     @property
     def texts(self) -> list[str]:
@@ -45,7 +57,7 @@ class FakeRentalFetcher:
         return self.pages[min(len(self.fetched_urls) - 1, len(self.pages) - 1)]
 
 
-def listing(listing_id: str) -> RentalListing:
+def listing(listing_id: str, *, image_url: str | None = None) -> RentalListing:
     return RentalListing(
         listing_id=listing_id,
         url=f"https://rent.591.com.tw/{listing_id}",
@@ -57,6 +69,7 @@ def listing(listing_id: str) -> RentalListing:
         area_ping=8.5,
         floor="3F/5F",
         published_text="3分鐘內更新",
+        image_url=image_url,
     )
 
 
@@ -115,6 +128,63 @@ def test_due_subscription_check_sends_new_listing_once(tmp_path: Path) -> None:
     assert updated.last_success_at == NOW
     assert updated.last_result_count == 1
     assert updated.next_check_at == NOW + timedelta(seconds=307)
+
+
+def test_listing_with_image_is_sent_as_photo(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    subscription = active_subscription(repo)
+    telegram = FakeTelegram()
+    fetcher = FakeRentalFetcher(
+        [
+            RentalSearchPage(
+                total_count=1,
+                listings=(
+                    listing(
+                        "90000001",
+                        image_url="https://hp1.591.com.tw/house.jpg",
+                    ),
+                ),
+            )
+        ]
+    )
+    monitor = service(repo, telegram, fetcher)
+
+    result = monitor.check_subscription(subscription)
+
+    assert result.sent_count == 1
+    assert telegram.sent_messages == []
+    assert telegram.sent_photos[0][1] == "https://hp1.591.com.tw/house.jpg"
+    assert "新房源：測試房源 90000001" in telegram.sent_photos[0][2]
+    assert repo.list_pending_notifications(subscription.id) == ()
+
+
+def test_image_send_failure_falls_back_to_text_notification(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    subscription = active_subscription(repo)
+    telegram = FakeTelegram(fail_photos=True)
+    fetcher = FakeRentalFetcher(
+        [
+            RentalSearchPage(
+                total_count=1,
+                listings=(
+                    listing(
+                        "90000001",
+                        image_url="https://hp1.591.com.tw/house.jpg",
+                    ),
+                ),
+            )
+        ]
+    )
+    monitor = service(repo, telegram, fetcher)
+
+    result = monitor.check_subscription(subscription)
+
+    assert result.sent_count == 1
+    assert telegram.sent_photos == []
+    assert "新房源：測試房源 90000001" in telegram.texts[0]
+    assert repo.list_pending_notifications(subscription.id) == ()
+    assert repo.notification_event_count(subscription.id, "90000001", status="failed") == 1
+    assert repo.notification_event_count(subscription.id, "90000001", status="sent") == 1
 
 
 def test_check_due_subscriptions_skips_not_due_and_non_active(tmp_path: Path) -> None:

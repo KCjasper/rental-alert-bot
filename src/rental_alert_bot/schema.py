@@ -106,6 +106,10 @@ MIGRATIONS = (
     CREATE INDEX idx_bot_command_events_command
         ON bot_command_events(command, status, created_at);
     """,
+    """
+    ALTER TABLE listings
+        ADD COLUMN image_url TEXT;
+    """,
 )
 
 LATEST_SCHEMA_VERSION = len(MIGRATIONS)

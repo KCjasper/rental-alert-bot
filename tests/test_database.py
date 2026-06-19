@@ -22,6 +22,9 @@ def test_initializes_schema_with_integrity_settings(tmp_path: Path) -> None:
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
+        listing_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(listings)").fetchall()
+        }
 
     assert version == LATEST_SCHEMA_VERSION
     assert foreign_keys == 1
@@ -33,6 +36,7 @@ def test_initializes_schema_with_integrity_settings(tmp_path: Path) -> None:
         "notification_events",
         "pending_actions",
     } <= tables
+    assert "image_url" in listing_columns
 
 
 def test_initialize_is_idempotent(tmp_path: Path) -> None:

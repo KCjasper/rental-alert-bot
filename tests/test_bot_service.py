@@ -16,9 +16,13 @@ NOW = datetime(2026, 6, 16, 9, 0, tzinfo=UTC)
 class FakeTelegram:
     def __init__(self) -> None:
         self.sent_messages: list[tuple[int, str]] = []
+        self.sent_photos: list[tuple[int, str, str]] = []
 
     def send_message(self, chat_id: int, text: str) -> None:
         self.sent_messages.append((chat_id, text))
+
+    def send_photo(self, chat_id: int, photo_url: str, caption: str) -> None:
+        self.sent_photos.append((chat_id, photo_url, caption))
 
     @property
     def texts(self) -> list[str]:
@@ -35,7 +39,7 @@ class FakeRentalFetcher:
         return self.page
 
 
-def listing(listing_id: str) -> RentalListing:
+def listing(listing_id: str, *, image_url: str | None = None) -> RentalListing:
     return RentalListing(
         listing_id=listing_id,
         url=f"https://rent.591.com.tw/{listing_id}",
@@ -47,6 +51,7 @@ def listing(listing_id: str) -> RentalListing:
         area_ping=8.5,
         floor="3F/5F",
         published_text="3分鐘內更新",
+        image_url=image_url,
     )
 
 
@@ -155,6 +160,27 @@ def test_url_creates_pending_subscription_then_confirm_sends_initial_listings(
     assert any("新房源：測試房源 90000001" in text for text in telegram.texts)
     assert any("首次全量通知完成，共發送 2 筆" in text for text in telegram.texts)
     assert [event.command for event in repo.list_bot_command_events()] == ["url", "confirm"]
+
+
+def test_initial_delivery_sends_listing_photo_when_available(tmp_path: Path) -> None:
+    page = RentalSearchPage(
+        total_count=1,
+        listings=(
+            listing(
+                "90000001",
+                image_url="https://hp1.591.com.tw/house.jpg",
+            ),
+        ),
+    )
+    bot, repo, telegram, _fetcher = service(tmp_path, FakeRentalFetcher(page))
+
+    bot.handle_update(update("https://rent.591.com.tw/list?region=1"))
+    subscription = repo.list_subscriptions()[0]
+    bot.handle_update(update("確認"))
+
+    assert repo.get_subscription(subscription.id).status is SubscriptionStatus.ACTIVE
+    assert telegram.sent_photos[0][1] == "https://hp1.591.com.tw/house.jpg"
+    assert "新房源：測試房源 90000001" in telegram.sent_photos[0][2]
 
 
 def test_cancel_pending_initial_subscription_soft_deletes_it(tmp_path: Path) -> None:

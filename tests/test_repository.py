@@ -17,7 +17,12 @@ from rental_alert_bot.repository import (
 NOW = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 
 
-def listing(listing_id: str, *, price: int = 18_500) -> RentalListing:
+def listing(
+    listing_id: str,
+    *,
+    price: int = 18_500,
+    image_url: str | None = None,
+) -> RentalListing:
     return RentalListing(
         listing_id=listing_id,
         url=f"https://rent.591.com.tw/{listing_id}",
@@ -29,6 +34,7 @@ def listing(listing_id: str, *, price: int = 18_500) -> RentalListing:
         area_ping=8.5,
         floor="3F/5F",
         published_text="3分鐘內更新",
+        image_url=image_url,
     )
 
 
@@ -115,6 +121,27 @@ def test_duplicate_fetch_and_restart_keep_one_pending_relation(tmp_path: Path) -
     pending = restarted_process.list_pending_notifications(subscription.id)
     assert [item.listing.listing_id for item in pending] == ["90000001", "90000002"]
     assert all(item.attempt_count == 0 for item in pending)
+
+
+def test_listing_image_url_is_saved_and_updated(tmp_path: Path) -> None:
+    path = tmp_path / "rental.db"
+    repo = repository(path)
+    subscription = create_subscription(repo)
+    repo.activate_subscription(subscription.id)
+
+    repo.record_discovered_listings(
+        subscription.id,
+        [listing("90000001", image_url="https://hp1.591.com.tw/old.jpg")],
+    )
+    repo.record_discovered_listings(
+        subscription.id,
+        [listing("90000001", image_url="https://hp1.591.com.tw/new.jpg")],
+    )
+
+    restarted_process = repository(path)
+    pending = restarted_process.list_pending_notifications(subscription.id)
+
+    assert pending[0].listing.image_url == "https://hp1.591.com.tw/new.jpg"
 
 
 def test_repeated_fetch_notifies_each_listing_exactly_once(tmp_path: Path) -> None:

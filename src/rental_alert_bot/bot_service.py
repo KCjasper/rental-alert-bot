@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
-from rental_alert_bot.listing import RentalSearchPage
+from rental_alert_bot.listing import RentalListing, RentalSearchPage
 from rental_alert_bot.message_templates import (
     HELP_TEXT,
     listing_notification,
@@ -32,6 +32,8 @@ from rental_alert_bot.telegram_models import TelegramMessage, TelegramUpdate
 
 class TelegramSender(Protocol):
     def send_message(self, chat_id: int, text: str) -> None: ...
+
+    def send_photo(self, chat_id: int, photo_url: str, caption: str) -> None: ...
 
 
 class RentalFetcher(Protocol):
@@ -369,10 +371,7 @@ class BotService:
                 continue
 
             try:
-                self._telegram.send_message(
-                    message.chat.id,
-                    listing_notification(pending.listing),
-                )
+                self._send_listing_notification(message.chat.id, subscription_id, pending.listing)
             except TelegramApiError as exc:
                 self._repository.record_notification_failure(
                     subscription_id,
@@ -396,6 +395,27 @@ class BotService:
             message.chat.id,
             f"首次全量通知完成，共發送 {sent_count} 筆。之後只會通知新房源。",
         )
+
+    def _send_listing_notification(
+        self,
+        chat_id: int,
+        subscription_id: int,
+        listing: RentalListing,
+    ) -> None:
+        text = listing_notification(listing)
+        if listing.image_url:
+            try:
+                self._telegram.send_photo(chat_id, listing.image_url, text)
+                return
+            except TelegramApiError as exc:
+                self._repository.record_notification_failure(
+                    subscription_id,
+                    listing.listing_id,
+                    error_code=f"telegram_photo_{exc.error_code or 'error'}",
+                    error_message=str(exc),
+                )
+
+        self._telegram.send_message(chat_id, text)
 
     def _expires_at(self) -> datetime:
         return self._clock() + timedelta(minutes=self._settings.pending_action_ttl_minutes)

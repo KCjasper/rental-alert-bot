@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
 
@@ -30,6 +31,7 @@ _BLOCK_MARKERS = (
     "存取遭拒",
 )
 _AREA_PATTERN = re.compile(r"(?P<area>\d+(?:\.\d+)?)\s*坪")
+_BACKGROUND_IMAGE_PATTERN = re.compile(r"url\((?P<quote>['\"]?)(?P<url>.*?)(?P=quote)\)")
 _PRICE_PATTERN = re.compile(r"\d[\d,]*")
 _TOTAL_PATTERN = re.compile(r"\d[\d,]*")
 
@@ -59,6 +61,44 @@ def _parse_total_count(soup: BeautifulSoup) -> int | None:
 
 def _first_matching(values: Iterable[str], pattern: re.Pattern[str]) -> str | None:
     return next((value for value in values if pattern.search(value)), None)
+
+
+def _normalize_image_url(raw_url: str) -> str | None:
+    value = raw_url.strip()
+    if not value or value.startswith("data:"):
+        return None
+
+    if value.startswith("//"):
+        value = f"https:{value}"
+    elif value.startswith("/"):
+        value = urljoin("https://rent.591.com.tw", value)
+
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"}:
+        return None
+    host = parsed.hostname or ""
+    if host != "591.com.tw" and not host.endswith(".591.com.tw"):
+        return None
+
+    return parsed._replace(scheme="https").geturl()
+
+
+def _parse_image_url(item: Tag) -> str | None:
+    for image in item.select("img"):
+        for attribute in ("data-src", "data-original", "src"):
+            raw_value = image.get(attribute)
+            if isinstance(raw_value, str) and (url := _normalize_image_url(raw_value)):
+                return url
+
+    for node in item.select("[style]"):
+        style = node.get("style")
+        if not isinstance(style, str):
+            continue
+        match = _BACKGROUND_IMAGE_PATTERN.search(style)
+        if match and (url := _normalize_image_url(match.group("url"))):
+            return url
+
+    return None
 
 
 def _parse_listing(item: Tag) -> RentalListing:
@@ -105,6 +145,7 @@ def _parse_listing(item: Tag) -> RentalListing:
         area_ping=float(area_match.group("area")) if area_match else None,
         floor=floor,
         published_text=published_text,
+        image_url=_parse_image_url(item),
     )
 
 

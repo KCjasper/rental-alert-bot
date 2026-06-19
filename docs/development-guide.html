@@ -105,7 +105,7 @@
       <div class="eyebrow">Developer Guide · Phase 1–4</div>
       <h1>開發環境操作指南</h1>
       <p class="lead">本文件說明如何建立隔離環境、執行品質檢查，以及驗證應用程式啟動設定。</p>
-      <span class="status">階段 1–4 已通過；下一步進入階段 5</span>
+      <span class="status">階段 1–4 已通過；階段 5 開發中</span>
     </header>
 
     <section>
@@ -158,7 +158,7 @@ uv run --frozen rental-alert-bot --check</code></pre>
 uv run --frozen python .\scripts\init_database.py</code></pre>
       <p>
         預設建立 <code>./data/rental_alert.db</code>。指令可重複執行，只會套用尚未執行的
-        migration；目前 schema 版本為 v1。
+        migration；目前 schema 版本為 v3。
       </p>
     </section>
 
@@ -221,7 +221,7 @@ uv run --frozen python .\scripts\validate_phase4_manual.py</code></pre>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\run_monitor_once.py</code></pre>
       <p>
-        這不是長時間常駐排程；完整 5 分鐘輪詢、優雅停止與 8 小時穩定性驗收仍屬階段 5 後續工作。
+        這不是長時間常駐排程；常駐排程與本機完整服務已另有腳本，8 小時穩定性驗收仍屬階段 5 後續工作。
       </p>
     </section>
 
@@ -263,7 +263,7 @@ uv run --frozen python .\scripts\run_local_service.py</code></pre>
       </ul>
     </section>
 
-    <footer>文件版本：v0.5 · 更新日期：2026-06-20</footer>
+    <footer>文件版本：v0.6 · 更新日期：2026-06-20</footer>
   </main>
 </body>
 </html>

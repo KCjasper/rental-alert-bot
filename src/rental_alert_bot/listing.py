@@ -17,6 +17,7 @@ class RentalListing:
     area_ping: float | None
     floor: str | None
     published_text: str | None
+    image_url: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
