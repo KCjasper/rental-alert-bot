@@ -267,6 +267,12 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
         累積至少 90 次有實際檢查訂閱的監控輪詢、沒有未處理例外、沒有重複成功通知、SQLite 完整，
         且人工抽查 20 筆 Telegram 圖片通知與房源一致。
       </p>
+      <p>
+        開始前先做預檢。它只讀取 SQLite 與非秘密輪詢設定，不會抓 591，也不會發 Telegram。
+        若出現 warning，代表目前設定在最保守情況下可能需要跑超過 8 小時才能累積 90 次有效檢查。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\check_phase5_readiness.py</code></pre>
       <p>開始正式驗收前，先記錄 UTC 起始時間；後續驗證會只統計這個時間之後的監控輪詢。</p>
       <pre><code>$phase5Since = (Get-Date).ToUniversalTime().ToString("o")
 Write-Output $phase5Since</code></pre>

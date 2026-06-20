@@ -331,6 +331,8 @@
         本機完整服務入口 <code>scripts/run_local_service.py</code> 可在同一程序中啟動
         Bot 指令 long polling 與監控排程；圖片通知已支援公開首圖 URL、Telegram
         <code>sendPhoto</code> 與失敗退回文字。每次輪詢會寫入 <code>monitor_runs</code>，
+        <code>scripts/check_phase5_readiness.py</code> 可在長時間實跑前檢查 active/due 訂閱、
+        SQLite 完整性與目前輪詢設定是否可能需要超過 8 小時才能達到 90 次有效檢查；
         供 <code>scripts/validate_phase5_runtime.py</code> 驗證 8 小時、90 次有實際檢查訂閱的排程、
         無未處理例外、無重複通知與資料庫完整性。圖片人工抽查由
         <code>scripts/export_phase5_image_audit.py</code> 匯出候選 CSV，再由驗證腳本讀取已完成的抽查檔；
