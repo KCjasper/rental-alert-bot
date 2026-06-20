@@ -343,7 +343,7 @@
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
             <td><strong>開發中</strong></td>
-            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
+            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄、圖片抽查匯出與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
           </tr>
           <tr>
             <td>6–7</td>
@@ -629,8 +629,9 @@
             圖片通知已支援公開首圖 URL 保存、Telegram <code>sendPhoto</code> 發送，以及圖片失敗時退回文字通知。
             每次監控輪詢會寫入 <code>monitor_runs</code>，<code>scripts/monitor_status.py</code>
             可只讀輸出 active、due、pending、sent、failed 與監控輪詢累積狀態；
+            <code>scripts/export_phase5_image_audit.py</code> 可匯出圖片通知人工抽查表，
             <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次排程、
-            無未處理例外、無重複成功通知、資料庫完整性與圖片人工抽查數。
+            無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果。
             尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
           </div>
         </article>

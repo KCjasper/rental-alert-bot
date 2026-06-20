@@ -332,7 +332,9 @@
         Bot 指令 long polling 與監控排程；圖片通知已支援公開首圖 URL、Telegram
         <code>sendPhoto</code> 與失敗退回文字。每次輪詢會寫入 <code>monitor_runs</code>，
         供 <code>scripts/validate_phase5_runtime.py</code> 驗證 8 小時、90 次排程、
-        無未處理例外、無重複通知與資料庫完整性；實際 8 小時穩定性驗收仍在階段 5 後續工作中。
+        無未處理例外、無重複通知與資料庫完整性。圖片人工抽查由
+        <code>scripts/export_phase5_image_audit.py</code> 匯出候選 CSV，再由驗證腳本讀取已完成的抽查檔；
+        實際 8 小時穩定性驗收仍在階段 5 後續工作中。
       </p>
     </section>
 
@@ -395,7 +397,7 @@ TZ=Asia/Taipei</code></pre>
           <tr><td>惡意或錯誤網址</td><td>拒絕非 591、非 HTTPS、非租屋搜尋頁及偽造子網域。</td></tr>
           <tr><td>首次全量確認</td><td>確認前不發送；確認後分批送完；取消後停止剩餘項目。</td></tr>
           <tr><td>新房源去重</td><td>同一房源在後續輪詢與程序重啟後都不重複通知。</td></tr>
-          <tr><td>房源圖片</td><td>可附帶公開首圖；圖片與房源 ID 人工抽查一致，圖片失敗時仍有文字通知。</td></tr>
+          <tr><td>房源圖片</td><td>可附帶公開首圖；圖片與房源 ID 需以抽查 CSV 留下人工驗收證據，圖片失敗時仍有文字通知。</td></tr>
           <tr><td>暫停與恢復</td><td>暫停期間不抓取；恢復後保留既有去重資料。</td></tr>
           <tr><td>未授權帳號</td><td>不能建立、查看或操作任何訂閱。</td></tr>
           <tr><td>Telegram 發送失敗</td><td>房源保持未通知狀態，稍後可重試。</td></tr>

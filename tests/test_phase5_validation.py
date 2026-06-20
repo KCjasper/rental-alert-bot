@@ -134,3 +134,27 @@ def test_validate_phase5_runtime_detects_duplicate_sent_notifications(
 
     assert result.passed is False
     assert result.duplicate_sent_notification_count == 1
+
+
+def test_validate_phase5_runtime_detects_failed_image_spot_checks(
+    tmp_path: Path,
+) -> None:
+    database, repo = repository(tmp_path / "rental.db")
+    subscription = create_subscription(repo)
+    repo.record_discovered_listings(subscription.id, [listing("90000001")])
+    repo.record_notification_success(subscription.id, "90000001")
+
+    result = validate_phase5_runtime(
+        database,
+        requirements=Phase5Requirements(
+            minimum_runtime_hours=0,
+            minimum_monitor_runs=0,
+            minimum_image_spot_checks=1,
+        ),
+        manual_image_spot_checks=1,
+        failed_image_spot_checks=1,
+    )
+
+    assert result.passed is False
+    assert result.failed_image_spot_checks == 1
+    assert any("failed image spot checks" in failure for failure in result.failures)

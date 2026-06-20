@@ -30,6 +30,8 @@ class Phase5ValidationResult:
     image_listing_count: int
     photo_fallback_failure_count: int
     manual_image_spot_checks: int
+    failed_image_spot_checks: int
+    incomplete_image_spot_checks: int
     requirements: Phase5Requirements
     failures: tuple[str, ...]
 
@@ -58,6 +60,8 @@ class Phase5ValidationResult:
             f"image_listing_count={self.image_listing_count}",
             f"photo_fallback_failure_count={self.photo_fallback_failure_count}",
             f"manual_image_spot_checks={self.manual_image_spot_checks}",
+            f"failed_image_spot_checks={self.failed_image_spot_checks}",
+            f"incomplete_image_spot_checks={self.incomplete_image_spot_checks}",
             f"minimum_image_spot_checks={self.requirements.minimum_image_spot_checks}",
         )
         if not self.failures:
@@ -70,6 +74,8 @@ def validate_phase5_runtime(
     *,
     requirements: Phase5Requirements | None = None,
     manual_image_spot_checks: int = 0,
+    failed_image_spot_checks: int = 0,
+    incomplete_image_spot_checks: int = 0,
 ) -> Phase5ValidationResult:
     requirements = requirements or Phase5Requirements()
     try:
@@ -150,6 +156,8 @@ def validate_phase5_runtime(
             "manual image spot checks "
             f"{manual_image_spot_checks} < {requirements.minimum_image_spot_checks}"
         )
+    if failed_image_spot_checks:
+        failures.append(f"failed image spot checks: {failed_image_spot_checks}")
     if image_listing_count < manual_image_spot_checks:
         failures.append(
             f"image listings {image_listing_count} < manual image spot checks "
@@ -168,6 +176,8 @@ def validate_phase5_runtime(
         image_listing_count=image_listing_count,
         photo_fallback_failure_count=photo_fallback_failure_count,
         manual_image_spot_checks=manual_image_spot_checks,
+        failed_image_spot_checks=failed_image_spot_checks,
+        incomplete_image_spot_checks=incomplete_image_spot_checks,
         requirements=requirements,
         failures=tuple(failures),
     )

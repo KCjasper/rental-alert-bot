@@ -7,6 +7,7 @@ from pathlib import Path
 
 from rental_alert_bot.config import Settings
 from rental_alert_bot.database import Database
+from rental_alert_bot.phase5_image_audit import summarize_image_audit_file
 from rental_alert_bot.phase5_validation import (
     Phase5Requirements,
     validate_phase5_runtime,
@@ -41,6 +42,14 @@ def main() -> int:
         help="Number of manually verified Telegram image notifications.",
     )
     parser.add_argument(
+        "--image-audit-file",
+        type=Path,
+        help=(
+            "Completed CSV from export_phase5_image_audit.py. "
+            "When provided, passed rows override --manual-image-spot-checks."
+        ),
+    )
+    parser.add_argument(
         "--minimum-image-spot-checks",
         type=int,
         default=20,
@@ -51,6 +60,14 @@ def main() -> int:
     settings = Settings.from_environment(require_secrets=False)
     database = Database(args.database or settings.database_path)
     database.initialize()
+    manual_image_spot_checks = args.manual_image_spot_checks
+    failed_image_spot_checks = 0
+    incomplete_image_spot_checks = 0
+    if args.image_audit_file is not None:
+        audit_summary = summarize_image_audit_file(args.image_audit_file)
+        manual_image_spot_checks = audit_summary.passed_checks
+        failed_image_spot_checks = audit_summary.failed_checks
+        incomplete_image_spot_checks = audit_summary.incomplete_checks
 
     result = validate_phase5_runtime(
         database,
@@ -59,7 +76,9 @@ def main() -> int:
             minimum_monitor_runs=args.minimum_monitor_runs,
             minimum_image_spot_checks=args.minimum_image_spot_checks,
         ),
-        manual_image_spot_checks=args.manual_image_spot_checks,
+        manual_image_spot_checks=manual_image_spot_checks,
+        failed_image_spot_checks=failed_image_spot_checks,
+        incomplete_image_spot_checks=incomplete_image_spot_checks,
     )
     for line in result.lines():
         print(line)

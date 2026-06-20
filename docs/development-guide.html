@@ -267,11 +267,19 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
         且人工抽查 20 筆 Telegram 圖片通知與房源一致。
       </p>
       <p>
-        跑完本機長時間服務後，輸入人工完成的圖片抽查數；未達標時腳本會回傳
-        <code>PHASE5_RUNTIME_VALIDATION_INCOMPLETE</code> 並列出缺少的證據。
+        跑完本機長時間服務後，先匯出圖片通知抽查表。工具會從已成功送出的圖片通知中挑出候選資料，
+        並拒絕覆寫既有檔案。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
-uv run --frozen python .\scripts\validate_phase5_runtime.py --manual-image-spot-checks 20</code></pre>
+uv run --frozen python .\scripts\export_phase5_image_audit.py --output .\outputs\phase5-image-audit.csv</code></pre>
+      <p>
+        開啟 CSV 後逐筆確認 Telegram 圖片是否對應同一個房源，並在
+        <code>image_matches</code> 欄填入 <code>yes</code> 或 <code>no</code>。
+        再用完成的抽查檔驗證階段 5；未達標時腳本會回傳
+        <code>PHASE5_RUNTIME_VALIDATION_INCOMPLETE</code> 並列出缺少或失敗的證據。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\validate_phase5_runtime.py --image-audit-file .\outputs\phase5-image-audit.csv</code></pre>
       <p>
         只有輸出 <code>PHASE5_RUNTIME_VALIDATION_OK</code>，才可將階段 5 標記為通過並進入 Railway 部署階段。
       </p>
