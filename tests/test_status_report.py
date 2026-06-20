@@ -69,6 +69,18 @@ def test_build_monitor_status_counts_operational_state(tmp_path: Path) -> None:
         sent_count=1,
         notification_failed_count=1,
     )
+    stopped_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW,
+    )
+    repo.record_service_stop(
+        stopped_service.id,
+        stopped_at=NOW + timedelta(seconds=2),
+    )
+    repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW + timedelta(seconds=3),
+    )
 
     status = build_monitor_status(database, now=NOW)
 
@@ -85,6 +97,18 @@ def test_build_monitor_status_counts_operational_state(tmp_path: Path) -> None:
     assert status.latest_monitor_run_at == (NOW + timedelta(seconds=1)).isoformat(
         timespec="microseconds"
     )
+    assert status.service_start_count == 2
+    assert status.running_service_run_count == 1
+    assert status.stopped_service_run_count == 1
+    assert status.failed_service_run_count == 0
+    assert status.latest_service_start_at == (NOW + timedelta(seconds=3)).isoformat(
+        timespec="microseconds"
+    )
+    assert status.latest_service_stop_at == (NOW + timedelta(seconds=2)).isoformat(
+        timespec="microseconds"
+    )
     assert "active_subscriptions=2" in status.lines()
     assert "monitor_run_count=1" in status.lines()
     assert "checked_monitor_run_count=1" in status.lines()
+    assert "service_start_count=2" in status.lines()
+    assert "running_service_run_count=1" in status.lines()

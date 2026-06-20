@@ -24,6 +24,12 @@ class MonitorStatus:
     checked_monitor_run_count: int
     failed_monitor_run_count: int
     latest_monitor_run_at: str | None
+    service_start_count: int
+    running_service_run_count: int
+    stopped_service_run_count: int
+    failed_service_run_count: int
+    latest_service_start_at: str | None
+    latest_service_stop_at: str | None
 
     def lines(self) -> tuple[str, ...]:
         return (
@@ -39,6 +45,12 @@ class MonitorStatus:
             f"checked_monitor_run_count={self.checked_monitor_run_count}",
             f"failed_monitor_run_count={self.failed_monitor_run_count}",
             f"latest_monitor_run_at={self.latest_monitor_run_at or 'none'}",
+            f"service_start_count={self.service_start_count}",
+            f"running_service_run_count={self.running_service_run_count}",
+            f"stopped_service_run_count={self.stopped_service_run_count}",
+            f"failed_service_run_count={self.failed_service_run_count}",
+            f"latest_service_start_at={self.latest_service_start_at or 'none'}",
+            f"latest_service_stop_at={self.latest_service_stop_at or 'none'}",
         )
 
 
@@ -96,6 +108,25 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
         latest_monitor_run_at = connection.execute(
             "SELECT MAX(completed_at) FROM monitor_runs",
         ).fetchone()[0]
+        service_start_count = _count(connection, "SELECT COUNT(*) FROM service_runs")
+        running_service_run_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM service_runs WHERE status = 'running'",
+        )
+        stopped_service_run_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM service_runs WHERE status = 'stopped'",
+        )
+        failed_service_run_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM service_runs WHERE status = 'failed'",
+        )
+        latest_service_start_at = connection.execute(
+            "SELECT MAX(started_at) FROM service_runs",
+        ).fetchone()[0]
+        latest_service_stop_at = connection.execute(
+            "SELECT MAX(stopped_at) FROM service_runs",
+        ).fetchone()[0]
 
     return MonitorStatus(
         database_path=database.path,
@@ -110,6 +141,12 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
         checked_monitor_run_count=checked_monitor_run_count,
         failed_monitor_run_count=failed_monitor_run_count,
         latest_monitor_run_at=latest_monitor_run_at,
+        service_start_count=service_start_count,
+        running_service_run_count=running_service_run_count,
+        stopped_service_run_count=stopped_service_run_count,
+        failed_service_run_count=failed_service_run_count,
+        latest_service_start_at=latest_service_start_at,
+        latest_service_stop_at=latest_service_stop_at,
     )
 
 

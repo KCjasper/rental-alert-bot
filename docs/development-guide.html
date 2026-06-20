@@ -254,7 +254,8 @@ uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <h2>查看監控狀態</h2>
       <p>
         這個指令只讀取 SQLite，不會抓 591，也不會發 Telegram；可在階段 5 的長時間驗收期間查看
-        active 訂閱、到期訂閱、待通知、成功與失敗通知數，以及總輪詢與有實際檢查訂閱的輪詢次數。
+        active 訂閱、到期訂閱、待通知、成功與失敗通知數、總輪詢、有實際檢查訂閱的輪詢次數、
+        服務啟動次數、仍在 running 的服務紀錄，以及正常停止或失敗停止次數。
         若資料庫 schema 過舊，工具會停止並提示先備份再初始化，不會自動 migration。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
