@@ -85,6 +85,21 @@ class BotCommandEvent:
     error_code: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class MonitorRun:
+    id: int
+    started_at: datetime
+    completed_at: datetime
+    checked_count: int
+    succeeded_count: int
+    failed_count: int
+    sent_count: int
+    notification_failed_count: int
+    status: str
+    error_code: str | None
+    error_message: str | None
+
+
 def _utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -549,6 +564,74 @@ class RentalRepository:
             ).fetchall()
         return tuple(self._bot_command_event_from_row(row) for row in rows)
 
+    def record_monitor_run(
+        self,
+        *,
+        started_at: datetime,
+        completed_at: datetime,
+        checked_count: int,
+        succeeded_count: int,
+        failed_count: int,
+        sent_count: int,
+        notification_failed_count: int,
+        status: str = "completed",
+        error_code: str | None = None,
+        error_message: str | None = None,
+    ) -> MonitorRun:
+        if status not in {"completed", "failed"}:
+            raise RepositoryError("monitor run status must be completed or failed")
+        counts = (
+            checked_count,
+            succeeded_count,
+            failed_count,
+            sent_count,
+            notification_failed_count,
+        )
+        if any(count < 0 for count in counts):
+            raise RepositoryError("monitor run counts must be zero or greater")
+
+        with self._database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO monitor_runs (
+                    started_at, completed_at, checked_count, succeeded_count,
+                    failed_count, sent_count, notification_failed_count,
+                    status, error_code, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    _timestamp(started_at),
+                    _timestamp(completed_at),
+                    checked_count,
+                    succeeded_count,
+                    failed_count,
+                    sent_count,
+                    notification_failed_count,
+                    status,
+                    error_code,
+                    error_message,
+                ),
+            )
+            monitor_run_id = int(cursor.lastrowid)
+        return self.get_monitor_run(monitor_run_id)
+
+    def get_monitor_run(self, monitor_run_id: int) -> MonitorRun:
+        with self._database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM monitor_runs WHERE id = ?",
+                (monitor_run_id,),
+            ).fetchone()
+        if row is None:
+            raise RepositoryError(f"monitor run {monitor_run_id} was not found")
+        return self._monitor_run_from_row(row)
+
+    def list_monitor_runs(self) -> tuple[MonitorRun, ...]:
+        with self._database.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM monitor_runs ORDER BY id",
+            ).fetchall()
+        return tuple(self._monitor_run_from_row(row) for row in rows)
+
     def _transition_subscription(
         self,
         subscription_id: int,
@@ -694,4 +777,20 @@ class RentalRepository:
             subscription_id=row["subscription_id"],
             created_at=_datetime(row["created_at"]),  # type: ignore[arg-type]
             error_code=row["error_code"],
+        )
+
+    @staticmethod
+    def _monitor_run_from_row(row: sqlite3.Row) -> MonitorRun:
+        return MonitorRun(
+            id=int(row["id"]),
+            started_at=_datetime(row["started_at"]),  # type: ignore[arg-type]
+            completed_at=_datetime(row["completed_at"]),  # type: ignore[arg-type]
+            checked_count=int(row["checked_count"]),
+            succeeded_count=int(row["succeeded_count"]),
+            failed_count=int(row["failed_count"]),
+            sent_count=int(row["sent_count"]),
+            notification_failed_count=int(row["notification_failed_count"]),
+            status=str(row["status"]),
+            error_code=row["error_code"],
+            error_message=row["error_message"],
         )

@@ -20,6 +20,9 @@ class MonitorStatus:
     sent_notifications: int
     failed_notifications: int
     latest_check_at: str | None
+    monitor_run_count: int
+    failed_monitor_run_count: int
+    latest_monitor_run_at: str | None
 
     def lines(self) -> tuple[str, ...]:
         return (
@@ -31,6 +34,9 @@ class MonitorStatus:
             f"sent_notifications={self.sent_notifications}",
             f"failed_notifications={self.failed_notifications}",
             f"latest_check_at={self.latest_check_at or 'none'}",
+            f"monitor_run_count={self.monitor_run_count}",
+            f"failed_monitor_run_count={self.failed_monitor_run_count}",
+            f"latest_monitor_run_at={self.latest_monitor_run_at or 'none'}",
         )
 
 
@@ -76,6 +82,14 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
         latest_check = connection.execute(
             "SELECT MAX(last_checked_at) FROM subscriptions",
         ).fetchone()[0]
+        monitor_run_count = _count(connection, "SELECT COUNT(*) FROM monitor_runs")
+        failed_monitor_run_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM monitor_runs WHERE status != 'completed'",
+        )
+        latest_monitor_run_at = connection.execute(
+            "SELECT MAX(completed_at) FROM monitor_runs",
+        ).fetchone()[0]
 
     return MonitorStatus(
         database_path=database.path,
@@ -86,6 +100,9 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
         sent_notifications=sent_count,
         failed_notifications=failed_count,
         latest_check_at=latest_check,
+        monitor_run_count=monitor_run_count,
+        failed_monitor_run_count=failed_monitor_run_count,
+        latest_monitor_run_at=latest_monitor_run_at,
     )
 
 

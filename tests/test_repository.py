@@ -304,3 +304,28 @@ def test_records_bot_command_events_without_message_content(tmp_path: Path) -> N
     assert events[0].authorized is True
     assert events[0].status == "accepted"
     assert events[0].subscription_id == subscription.id
+
+
+def test_records_monitor_runs_for_phase5_validation(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+
+    run = repo.record_monitor_run(
+        started_at=NOW,
+        completed_at=NOW + timedelta(seconds=2),
+        checked_count=3,
+        succeeded_count=2,
+        failed_count=1,
+        sent_count=5,
+        notification_failed_count=1,
+        status="completed",
+    )
+
+    assert run.id == 1
+    assert run.started_at == NOW
+    assert run.completed_at == NOW + timedelta(seconds=2)
+    assert run.checked_count == 3
+    assert run.succeeded_count == 2
+    assert run.failed_count == 1
+    assert run.sent_count == 5
+    assert run.notification_failed_count == 1
+    assert repo.list_monitor_runs() == (run,)

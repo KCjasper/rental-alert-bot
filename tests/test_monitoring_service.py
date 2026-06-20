@@ -123,6 +123,12 @@ def test_due_subscription_check_sends_new_listing_once(tmp_path: Path) -> None:
     assert second == ()
     assert len(telegram.sent_messages) == 1
     assert "新房源：測試房源 90000001" in telegram.texts[0]
+    runs = repo.list_monitor_runs()
+    assert len(runs) == 2
+    assert runs[0].checked_count == 1
+    assert runs[0].succeeded_count == 1
+    assert runs[0].sent_count == 1
+    assert runs[1].checked_count == 0
 
     updated = repo.get_subscription(subscription.id)
     assert updated.last_success_at == NOW
@@ -202,6 +208,9 @@ def test_check_due_subscriptions_skips_not_due_and_non_active(tmp_path: Path) ->
     monitor = service(repo)
 
     assert monitor.check_due_subscriptions() == ()
+    runs = repo.list_monitor_runs()
+    assert len(runs) == 1
+    assert runs[0].checked_count == 0
 
 
 def test_telegram_failure_leaves_listing_pending_for_retry(tmp_path: Path) -> None:
@@ -238,3 +247,22 @@ def test_repeated_591_failures_record_check_and_send_alert(tmp_path: Path) -> No
     assert repo.get_subscription(subscription.id).next_check_at == NOW + timedelta(seconds=307)
     assert len(telegram.sent_messages) == 1
     assert "系統告警" in telegram.texts[0]
+
+
+def test_due_subscription_failure_is_counted_in_monitor_run(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    active_subscription(repo)
+    monitor = service(
+        repo,
+        fetcher=FakeRentalFetcher(error=RentalPageBlockedError("blocked by verification")),
+    )
+
+    result = monitor.check_due_subscriptions()
+
+    assert result[0].succeeded is False
+    runs = repo.list_monitor_runs()
+    assert len(runs) == 1
+    assert runs[0].checked_count == 1
+    assert runs[0].succeeded_count == 0
+    assert runs[0].failed_count == 1
+    assert runs[0].status == "completed"

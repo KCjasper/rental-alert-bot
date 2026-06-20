@@ -110,6 +110,27 @@ MIGRATIONS = (
     ALTER TABLE listings
         ADD COLUMN image_url TEXT;
     """,
+    """
+    CREATE TABLE monitor_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_at TEXT NOT NULL,
+        completed_at TEXT NOT NULL,
+        checked_count INTEGER NOT NULL CHECK (checked_count >= 0),
+        succeeded_count INTEGER NOT NULL CHECK (succeeded_count >= 0),
+        failed_count INTEGER NOT NULL CHECK (failed_count >= 0),
+        sent_count INTEGER NOT NULL CHECK (sent_count >= 0),
+        notification_failed_count INTEGER NOT NULL CHECK (notification_failed_count >= 0),
+        status TEXT NOT NULL CHECK (status IN ('completed', 'failed')),
+        error_code TEXT,
+        error_message TEXT
+    );
+
+    CREATE INDEX idx_monitor_runs_started_at
+        ON monitor_runs(started_at);
+
+    CREATE INDEX idx_monitor_runs_status
+        ON monitor_runs(status, completed_at);
+    """,
 )
 
 LATEST_SCHEMA_VERSION = len(MIGRATIONS)

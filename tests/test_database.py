@@ -35,6 +35,7 @@ def test_initializes_schema_with_integrity_settings(tmp_path: Path) -> None:
         "subscription_listings",
         "notification_events",
         "pending_actions",
+        "monitor_runs",
     } <= tables
     assert "image_url" in listing_columns
 

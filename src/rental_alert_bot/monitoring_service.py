@@ -65,10 +65,38 @@ class MonitoringService:
     _consecutive_failures: dict[int, int] = field(default_factory=dict)
 
     def check_due_subscriptions(self) -> tuple[SubscriptionCheckResult, ...]:
-        return tuple(
-            self.check_subscription(subscription)
-            for subscription in self.repository.list_due_subscriptions(self.clock())
+        started_at = self.clock()
+        try:
+            results = tuple(
+                self.check_subscription(subscription)
+                for subscription in self.repository.list_due_subscriptions(started_at)
+            )
+        except Exception as exc:
+            self.repository.record_monitor_run(
+                started_at=started_at,
+                completed_at=self.clock(),
+                checked_count=0,
+                succeeded_count=0,
+                failed_count=0,
+                sent_count=0,
+                notification_failed_count=0,
+                status="failed",
+                error_code=exc.__class__.__name__,
+                error_message=str(exc),
+            )
+            raise
+
+        self.repository.record_monitor_run(
+            started_at=started_at,
+            completed_at=self.clock(),
+            checked_count=len(results),
+            succeeded_count=sum(1 for result in results if result.succeeded),
+            failed_count=sum(1 for result in results if not result.succeeded),
+            sent_count=sum(result.sent_count for result in results),
+            notification_failed_count=sum(result.failed_count for result in results),
+            status="completed",
         )
+        return results
 
     def check_subscription(self, subscription: Subscription) -> SubscriptionCheckResult:
         next_check_at = self._next_check_at()

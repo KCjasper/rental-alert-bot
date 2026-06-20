@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 5 開發中，已完成監控服務、圖片通知與本機完整服務入口</span>
+      <span class="status">目前進度：階段 5 開發中，已完成監控服務、圖片通知、本機完整服務入口與長時間驗收工具</span>
     </header>
 
     <section>
@@ -343,7 +343,7 @@
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
             <td><strong>開發中</strong></td>
-            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知與健康狀態輸出；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
+            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
           </tr>
           <tr>
             <td>6–7</td>
@@ -593,7 +593,7 @@
                 <li>實作 5 分鐘輪詢與 0–30 秒隨機延遲。</li>
                 <li>整合新房源偵測與通知交易。</li>
                 <li>新增房源公開首圖解析與 Telegram 圖片通知。</li>
-                <li>加入優雅停止、重啟恢復與健康狀態。</li>
+                <li>加入優雅停止、重啟恢復、健康狀態與監控執行紀錄。</li>
                 <li>加入連續失敗告警與恢復通知。</li>
               </ul>
             </section>
@@ -603,7 +603,7 @@
                 <li>排程器與應用服務。</li>
                 <li>圖片 URL 解析與 Telegram 圖片發送策略。</li>
                 <li>端到端測試腳本。</li>
-                <li>健康檢查或狀態輸出。</li>
+                <li>健康檢查、狀態輸出與階段驗證腳本。</li>
                 <li>故障注入測試案例。</li>
               </ul>
             </section>
@@ -626,8 +626,11 @@
             可處理到期 active 訂閱、新房源通知去重、Telegram 發送失敗保留待重試、
             591 連續失敗告警、Telegram 指令 long polling，以及 SIGINT/SIGTERM 優雅停止。
             圖片通知已支援公開首圖 URL 保存、Telegram <code>sendPhoto</code> 發送，以及圖片失敗時退回文字通知。
-            <code>scripts/monitor_status.py</code> 可只讀輸出 active、due、pending、sent 與 failed 狀態。
-            尚未完成 8 小時驗收與 20 筆圖片人工抽查。
+            每次監控輪詢會寫入 <code>monitor_runs</code>，<code>scripts/monitor_status.py</code>
+            可只讀輸出 active、due、pending、sent、failed 與監控輪詢累積狀態；
+            <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次排程、
+            無未處理例外、無重複成功通知、資料庫完整性與圖片人工抽查數。
+            尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
           </div>
         </article>
 
