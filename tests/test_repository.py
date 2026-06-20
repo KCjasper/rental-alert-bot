@@ -329,3 +329,38 @@ def test_records_monitor_runs_for_phase5_validation(tmp_path: Path) -> None:
     assert run.sent_count == 5
     assert run.notification_failed_count == 1
     assert repo.list_monitor_runs() == (run,)
+
+
+def test_records_service_runs_for_cold_start_validation(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    stopped = NOW + timedelta(seconds=5)
+
+    service_run = repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW,
+    )
+    stopped_run = repo.record_service_stop(
+        service_run.id,
+        stopped_at=stopped,
+        stop_reason="test_stop",
+    )
+
+    assert service_run.process_name == "local_service"
+    assert service_run.status == "running"
+    assert stopped_run.status == "stopped"
+    assert stopped_run.stopped_at == stopped
+    assert stopped_run.stop_reason == "test_stop"
+    assert repo.list_service_runs() == (stopped_run,)
+
+
+def test_rejects_invalid_service_run_state(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+
+    with pytest.raises(RepositoryError, match="unknown service"):
+        repo.record_service_start(process_name="unknown")
+
+    service_run = repo.record_service_start(process_name="monitor_loop")
+    repo.record_service_stop(service_run.id)
+
+    with pytest.raises(RepositoryError, match="not running"):
+        repo.record_service_stop(service_run.id)

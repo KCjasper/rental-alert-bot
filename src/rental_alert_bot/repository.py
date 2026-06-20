@@ -100,6 +100,17 @@ class MonitorRun:
     error_message: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class ServiceRun:
+    id: int
+    process_name: str
+    started_at: datetime
+    stopped_at: datetime | None
+    status: str
+    stop_reason: str | None
+    error_message: str | None
+
+
 def _utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -632,6 +643,79 @@ class RentalRepository:
             ).fetchall()
         return tuple(self._monitor_run_from_row(row) for row in rows)
 
+    def record_service_start(
+        self,
+        *,
+        process_name: str,
+        started_at: datetime | None = None,
+    ) -> ServiceRun:
+        if process_name not in {"local_service", "monitor_loop"}:
+            raise RepositoryError("unknown service process name")
+
+        started = started_at or self._clock()
+        with self._database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO service_runs (process_name, started_at, status)
+                VALUES (?, ?, 'running')
+                """,
+                (process_name, _timestamp(started)),
+            )
+            service_run_id = int(cursor.lastrowid)
+        return self.get_service_run(service_run_id)
+
+    def record_service_stop(
+        self,
+        service_run_id: int,
+        *,
+        status: str = "stopped",
+        stop_reason: str | None = None,
+        error_message: str | None = None,
+        stopped_at: datetime | None = None,
+    ) -> ServiceRun:
+        if status not in {"stopped", "failed"}:
+            raise RepositoryError("service stop status must be stopped or failed")
+
+        stopped = stopped_at or self._clock()
+        with self._database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE service_runs
+                SET stopped_at = ?,
+                    status = ?,
+                    stop_reason = ?,
+                    error_message = ?
+                WHERE id = ? AND status = 'running'
+                """,
+                (
+                    _timestamp(stopped),
+                    status,
+                    stop_reason,
+                    error_message,
+                    service_run_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise RepositoryError(f"service run {service_run_id} is not running")
+        return self.get_service_run(service_run_id)
+
+    def get_service_run(self, service_run_id: int) -> ServiceRun:
+        with self._database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM service_runs WHERE id = ?",
+                (service_run_id,),
+            ).fetchone()
+        if row is None:
+            raise RepositoryError(f"service run {service_run_id} was not found")
+        return self._service_run_from_row(row)
+
+    def list_service_runs(self) -> tuple[ServiceRun, ...]:
+        with self._database.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM service_runs ORDER BY id",
+            ).fetchall()
+        return tuple(self._service_run_from_row(row) for row in rows)
+
     def _transition_subscription(
         self,
         subscription_id: int,
@@ -792,5 +876,17 @@ class RentalRepository:
             notification_failed_count=int(row["notification_failed_count"]),
             status=str(row["status"]),
             error_code=row["error_code"],
+            error_message=row["error_message"],
+        )
+
+    @staticmethod
+    def _service_run_from_row(row: sqlite3.Row) -> ServiceRun:
+        return ServiceRun(
+            id=int(row["id"]),
+            process_name=str(row["process_name"]),
+            started_at=_datetime(row["started_at"]),  # type: ignore[arg-type]
+            stopped_at=_datetime(row["stopped_at"]),
+            status=str(row["status"]),
+            stop_reason=row["stop_reason"],
             error_message=row["error_message"],
         )

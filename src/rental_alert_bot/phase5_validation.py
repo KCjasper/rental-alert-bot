@@ -15,6 +15,7 @@ class Phase5Requirements:
     minimum_runtime_hours: float = 8.0
     minimum_monitor_runs: int = 90
     minimum_image_spot_checks: int = 20
+    minimum_service_starts: int = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +30,10 @@ class Phase5ValidationResult:
     first_started_at: str | None
     latest_completed_at: str | None
     runtime_hours: float
+    service_start_count: int
+    running_service_run_count: int
+    stopped_service_run_count: int
+    failed_service_run_count: int
     duplicate_sent_notification_count: int
     image_listing_count: int
     photo_fallback_failure_count: int
@@ -62,6 +67,11 @@ class Phase5ValidationResult:
             f"latest_completed_at={self.latest_completed_at or 'none'}",
             f"runtime_hours={self.runtime_hours:.2f}",
             f"minimum_runtime_hours={self.requirements.minimum_runtime_hours:.2f}",
+            f"service_start_count={self.service_start_count}",
+            f"minimum_service_starts={self.requirements.minimum_service_starts}",
+            f"running_service_run_count={self.running_service_run_count}",
+            f"stopped_service_run_count={self.stopped_service_run_count}",
+            f"failed_service_run_count={self.failed_service_run_count}",
             f"duplicate_sent_notification_count={self.duplicate_sent_notification_count}",
             f"image_listing_count={self.image_listing_count}",
             f"photo_fallback_failure_count={self.photo_fallback_failure_count}",
@@ -119,6 +129,25 @@ def validate_phase5_runtime(
             """,
             run_parameters,
         ).fetchone()
+        service_filter, service_parameters = _service_run_filter(
+            evidence_since=evidence_since,
+            evidence_until=evidence_until,
+        )
+        service_summary = connection.execute(
+            f"""
+            SELECT
+                COUNT(*) AS service_start_count,
+                SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END)
+                    AS running_service_run_count,
+                SUM(CASE WHEN status = 'stopped' THEN 1 ELSE 0 END)
+                    AS stopped_service_run_count,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)
+                    AS failed_service_run_count
+            FROM service_runs
+            {service_filter}
+            """,
+            service_parameters,
+        ).fetchone()
         duplicate_sent_count = int(
             connection.execute(
                 """
@@ -158,6 +187,10 @@ def validate_phase5_runtime(
     monitor_run_count = int(run_summary["monitor_run_count"] or 0)
     checked_monitor_run_count = int(run_summary["checked_monitor_run_count"] or 0)
     failed_monitor_run_count = int(run_summary["failed_monitor_run_count"] or 0)
+    service_start_count = int(service_summary["service_start_count"] or 0)
+    running_service_run_count = int(service_summary["running_service_run_count"] or 0)
+    stopped_service_run_count = int(service_summary["stopped_service_run_count"] or 0)
+    failed_service_run_count = int(service_summary["failed_service_run_count"] or 0)
 
     failures: list[str] = []
     if not database_integrity_ok:
@@ -173,6 +206,14 @@ def validate_phase5_runtime(
         )
     if failed_monitor_run_count:
         failures.append(f"unhandled monitor failures recorded: {failed_monitor_run_count}")
+    if service_start_count < requirements.minimum_service_starts:
+        failures.append(
+            f"service starts {service_start_count} < {requirements.minimum_service_starts}"
+        )
+    if running_service_run_count:
+        failures.append(f"service runs still marked running: {running_service_run_count}")
+    if failed_service_run_count:
+        failures.append(f"failed service runs recorded: {failed_service_run_count}")
     if duplicate_sent_count:
         failures.append(f"duplicate sent notification relations: {duplicate_sent_count}")
     if manual_image_spot_checks < requirements.minimum_image_spot_checks:
@@ -199,6 +240,10 @@ def validate_phase5_runtime(
         first_started_at=first_started_at,
         latest_completed_at=latest_completed_at,
         runtime_hours=runtime_hours,
+        service_start_count=service_start_count,
+        running_service_run_count=running_service_run_count,
+        stopped_service_run_count=stopped_service_run_count,
+        failed_service_run_count=failed_service_run_count,
         duplicate_sent_notification_count=duplicate_sent_count,
         image_listing_count=image_listing_count,
         photo_fallback_failure_count=photo_fallback_failure_count,
@@ -222,6 +267,24 @@ def _monitor_run_filter(
         parameters.append(evidence_since.isoformat(timespec="microseconds"))
     if evidence_until is not None:
         clauses.append("completed_at <= ?")
+        parameters.append(evidence_until.isoformat(timespec="microseconds"))
+    if not clauses:
+        return "", ()
+    return "WHERE " + " AND ".join(clauses), tuple(parameters)
+
+
+def _service_run_filter(
+    *,
+    evidence_since: datetime | None,
+    evidence_until: datetime | None,
+) -> tuple[str, tuple[str, ...]]:
+    clauses: list[str] = []
+    parameters: list[str] = []
+    if evidence_since is not None:
+        clauses.append("started_at >= ?")
+        parameters.append(evidence_since.isoformat(timespec="microseconds"))
+    if evidence_until is not None:
+        clauses.append("(stopped_at IS NULL OR stopped_at <= ?)")
         parameters.append(evidence_until.isoformat(timespec="microseconds"))
     if not clauses:
         return "", ()

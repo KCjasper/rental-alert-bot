@@ -66,6 +66,12 @@ def main() -> int:
         default=20,
         help="Minimum accepted manual image spot checks. Default: 20.",
     )
+    parser.add_argument(
+        "--minimum-service-starts",
+        type=int,
+        default=2,
+        help="Minimum service starts in the evidence window. Default: 2.",
+    )
     args = parser.parse_args()
 
     settings = Settings.from_environment(require_secrets=False)
@@ -86,6 +92,7 @@ def main() -> int:
             minimum_runtime_hours=args.minimum_runtime_hours,
             minimum_monitor_runs=args.minimum_monitor_runs,
             minimum_image_spot_checks=args.minimum_image_spot_checks,
+            minimum_service_starts=args.minimum_service_starts,
         ),
         manual_image_spot_checks=manual_image_spot_checks,
         failed_image_spot_checks=failed_image_spot_checks,

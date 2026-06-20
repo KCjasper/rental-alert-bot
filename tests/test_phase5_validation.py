@@ -68,6 +68,22 @@ def test_validate_phase5_runtime_passes_when_evidence_meets_requirements(
         sent_count=0,
         notification_failed_count=0,
     )
+    first_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW,
+    )
+    repo.record_service_stop(
+        first_service.id,
+        stopped_at=NOW + timedelta(seconds=5),
+    )
+    second_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW + timedelta(seconds=6),
+    )
+    repo.record_service_stop(
+        second_service.id,
+        stopped_at=NOW + timedelta(seconds=20),
+    )
 
     result = validate_phase5_runtime(
         database,
@@ -75,6 +91,7 @@ def test_validate_phase5_runtime_passes_when_evidence_meets_requirements(
             minimum_runtime_hours=0.001,
             minimum_monitor_runs=2,
             minimum_image_spot_checks=1,
+            minimum_service_starts=2,
         ),
         manual_image_spot_checks=1,
     )
@@ -83,6 +100,7 @@ def test_validate_phase5_runtime_passes_when_evidence_meets_requirements(
     assert result.monitor_run_count == 2
     assert result.checked_monitor_run_count == 2
     assert result.runtime_hours > 0.001
+    assert result.service_start_count == 2
     assert result.duplicate_sent_notification_count == 0
     assert result.image_listing_count == 1
     assert result.lines()[0] == "PHASE5_RUNTIME_VALIDATION_OK"
@@ -98,6 +116,7 @@ def test_validate_phase5_runtime_reports_missing_evidence(tmp_path: Path) -> Non
     assert result.monitor_run_count == 0
     assert any("checked monitor runs" in failure for failure in result.failures)
     assert any("runtime hours" in failure for failure in result.failures)
+    assert any("service starts" in failure for failure in result.failures)
     assert result.lines()[0] == "PHASE5_RUNTIME_VALIDATION_INCOMPLETE"
 
 
@@ -121,6 +140,7 @@ def test_validate_phase5_runtime_does_not_count_idle_iterations(
             minimum_runtime_hours=8,
             minimum_monitor_runs=1,
             minimum_image_spot_checks=0,
+            minimum_service_starts=0,
         ),
     )
 
@@ -159,6 +179,7 @@ def test_validate_phase5_runtime_detects_duplicate_sent_notifications(
             minimum_runtime_hours=0,
             minimum_monitor_runs=0,
             minimum_image_spot_checks=0,
+            minimum_service_starts=0,
         ),
     )
 
@@ -180,6 +201,7 @@ def test_validate_phase5_runtime_detects_failed_image_spot_checks(
             minimum_runtime_hours=0,
             minimum_monitor_runs=0,
             minimum_image_spot_checks=1,
+            minimum_service_starts=0,
         ),
         manual_image_spot_checks=1,
         failed_image_spot_checks=1,
@@ -188,6 +210,30 @@ def test_validate_phase5_runtime_detects_failed_image_spot_checks(
     assert result.passed is False
     assert result.failed_image_spot_checks == 1
     assert any("failed image spot checks" in failure for failure in result.failures)
+
+
+def test_validate_phase5_runtime_rejects_unclosed_service_runs(
+    tmp_path: Path,
+) -> None:
+    database, repo = repository(tmp_path / "rental.db")
+    repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW,
+    )
+
+    result = validate_phase5_runtime(
+        database,
+        requirements=Phase5Requirements(
+            minimum_runtime_hours=0,
+            minimum_monitor_runs=0,
+            minimum_image_spot_checks=0,
+            minimum_service_starts=0,
+        ),
+    )
+
+    assert result.passed is False
+    assert result.running_service_run_count == 1
+    assert any("still marked running" in failure for failure in result.failures)
 
 
 def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
@@ -217,6 +263,30 @@ def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
         sent_count=0,
         notification_failed_count=0,
     )
+    outside_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=old_started,
+    )
+    repo.record_service_stop(
+        outside_service.id,
+        stopped_at=old_started + timedelta(seconds=5),
+    )
+    first_window_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=window_started,
+    )
+    repo.record_service_stop(
+        first_window_service.id,
+        stopped_at=window_started + timedelta(seconds=5),
+    )
+    second_window_service = repo.record_service_start(
+        process_name="local_service",
+        started_at=window_started + timedelta(seconds=10),
+    )
+    repo.record_service_stop(
+        second_window_service.id,
+        stopped_at=window_started + timedelta(seconds=15),
+    )
 
     without_window = validate_phase5_runtime(
         database,
@@ -224,6 +294,7 @@ def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
             minimum_runtime_hours=0,
             minimum_monitor_runs=1,
             minimum_image_spot_checks=0,
+            minimum_service_starts=0,
         ),
     )
     with_window = validate_phase5_runtime(
@@ -232,6 +303,7 @@ def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
             minimum_runtime_hours=8,
             minimum_monitor_runs=1,
             minimum_image_spot_checks=0,
+            minimum_service_starts=2,
         ),
         evidence_since=window_started,
     )
@@ -241,6 +313,7 @@ def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
     assert with_window.passed is True
     assert with_window.monitor_run_count == 1
     assert with_window.checked_monitor_run_count == 1
+    assert with_window.service_start_count == 2
     assert with_window.runtime_hours == 8
     assert f"evidence_since={window_started.isoformat(timespec='microseconds')}" in (
         with_window.lines()

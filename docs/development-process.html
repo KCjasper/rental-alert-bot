@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 5 開發中，已完成監控服務、圖片通知、本機完整服務入口與長時間驗收工具</span>
+      <span class="status">目前進度：階段 5 開發中，已完成監控服務、圖片通知、本機完整服務入口、冷啟動紀錄與長時間驗收工具</span>
     </header>
 
     <section>
@@ -343,7 +343,7 @@
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
             <td><strong>開發中</strong></td>
-            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄、實跑前預檢、圖片抽查匯出與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
+            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄、服務啟停紀錄、實跑前預檢、圖片抽查匯出與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
           </tr>
           <tr>
             <td>6–7</td>
@@ -614,11 +614,11 @@
                 <li>可附帶房源公開首圖，圖片失敗時仍有文字通知。</li>
                 <li>相同結果連續檢查不重複通知。</li>
                 <li>網路、Telegram、SQLite 失敗皆可恢復。</li>
-                <li>連續 8 小時本機運行無崩潰。</li>
+                <li>驗收時間窗至少 8 小時，且中途正常停止並重新啟動一次。</li>
               </ul>
             </section>
           </div>
-          <div class="gate">階段關卡：本機連續 8 小時完成至少 90 次有實際檢查訂閱的排程，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
+          <div class="gate">階段關卡：本機驗收時間窗內累積至少 8 小時證據、至少 90 次有實際檢查訂閱的排程、至少 2 次服務啟動紀錄，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
           <div class="gate">
             開發紀錄（2026-06-20）：已新增一次性與常駐監控服務，
             <code>scripts/run_monitor_once.py</code>、<code>scripts/run_monitor_loop.py</code>、
@@ -632,9 +632,17 @@
             <code>scripts/check_phase5_readiness.py</code> 可在 8 小時實跑前檢查 active/due 訂閱與輪詢設定；
             <code>scripts/export_phase5_image_audit.py</code> 可匯出圖片通知人工抽查表，
             <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次有實際檢查訂閱的排程、
-            無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果；
+            至少 2 次服務啟動、無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果；
             驗證器支援 <code>--since</code>／<code>--until</code> 時間窗，正式驗收可排除較早測試紀錄。
             尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
+          </div>
+          <div class="gate">
+            開發紀錄（2026-06-21）：已新增 schema v5 <code>service_runs</code>，
+            <code>scripts/run_local_service.py</code> 與 <code>scripts/run_monitor_loop.py</code>
+            會記錄服務啟動與正常停止／失敗停止；
+            <code>scripts/validate_phase5_runtime.py</code> 預設要求驗收時間窗內至少 2 次服務啟動，
+            且不得留下 running 或 failed 的服務紀錄，用資料庫證據覆蓋冷啟動驗收。
+            自動檢查已通過 112 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
           </div>
           <div class="gate">
             本機準備紀錄（2026-06-21）：已先用 <code>scripts/backup_database.py</code>
@@ -644,6 +652,13 @@
             可開始第 5 階段長時間實跑驗收。因目前輪詢設定為 300 秒加上最多 30 秒隨機延遲，
             要保證至少 90 次有效檢查需預留約 8.16 小時；第 5 階段仍需完成長時間實跑紀錄與
             20 筆圖片人工抽查後才能通過。
+          </div>
+          <div class="gate">
+            本機準備紀錄（2026-06-21）：新增冷啟動紀錄 schema 後，已再次建立遷移前備份
+            <code>backups/rental-alert-pre-v5-migration-20260621-021600.db</code>，
+            並將本機 <code>data/rental_alert.db</code> 從 schema v4 遷移到 schema v5。
+            <code>scripts/check_phase5_readiness.py</code> 已再次通過：SQLite 完整、1 組 active 訂閱、
+            1 組 due 訂閱；目前仍需預留約 8.16 小時完成 90 次有效檢查，且驗收期間需正常停止並重新啟動一次服務。
           </div>
         </article>
 

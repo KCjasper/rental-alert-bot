@@ -26,39 +26,57 @@ def main() -> int:
     database = Database(settings.database_path)
     database.initialize()
     repository = RentalRepository(database)
+    service_run = repository.record_service_start(process_name="monitor_loop")
+    stop_status = "stopped"
+    stop_error: str | None = None
 
-    with (
-        TelegramClient(
-            settings.telegram_bot_token,
-            timeout_seconds=settings.request_timeout_seconds,
-        ) as telegram,
-        RentalClient(timeout_seconds=settings.request_timeout_seconds) as rental_fetcher,
-    ):
-        monitor = MonitoringService(
-            repository=repository,
-            telegram=telegram,
-            rental_fetcher=rental_fetcher,
-            settings=MonitoringSettings(
-                alert_chat_id=settings.authorized_telegram_user_id,
-                poll_interval_seconds=settings.poll_interval_seconds,
-                poll_jitter_seconds=settings.poll_jitter_seconds,
-                failure_alert_threshold=settings.failure_alert_threshold,
-            ),
-        )
-        scheduler = MonitoringScheduler(
-            monitor=monitor,
-            settings=SchedulerSettings(),
-            logger=logger,
-        )
-        install_stop_signal_handlers(scheduler)
-        logger.info(
-            "monitor_scheduler_started",
-            extra={
-                "poll_interval_seconds": settings.poll_interval_seconds,
-                "poll_jitter_seconds": settings.poll_jitter_seconds,
-            },
-        )
-        scheduler.run_forever()
+    try:
+        with (
+            TelegramClient(
+                settings.telegram_bot_token,
+                timeout_seconds=settings.request_timeout_seconds,
+            ) as telegram,
+            RentalClient(timeout_seconds=settings.request_timeout_seconds) as rental_fetcher,
+        ):
+            monitor = MonitoringService(
+                repository=repository,
+                telegram=telegram,
+                rental_fetcher=rental_fetcher,
+                settings=MonitoringSettings(
+                    alert_chat_id=settings.authorized_telegram_user_id,
+                    poll_interval_seconds=settings.poll_interval_seconds,
+                    poll_jitter_seconds=settings.poll_jitter_seconds,
+                    failure_alert_threshold=settings.failure_alert_threshold,
+                ),
+            )
+            scheduler = MonitoringScheduler(
+                monitor=monitor,
+                settings=SchedulerSettings(),
+                logger=logger,
+            )
+            install_stop_signal_handlers(scheduler)
+            logger.info(
+                "monitor_scheduler_started",
+                extra={
+                    "poll_interval_seconds": settings.poll_interval_seconds,
+                    "poll_jitter_seconds": settings.poll_jitter_seconds,
+                },
+            )
+            scheduler.run_forever()
+    except Exception as exc:
+        stop_status = "failed"
+        stop_error = f"{type(exc).__name__}: {exc}"
+        raise
+    finally:
+        try:
+            repository.record_service_stop(
+                service_run.id,
+                status=stop_status,
+                stop_reason="process_exit",
+                error_message=stop_error,
+            )
+        except Exception:
+            logger.exception("service_run_stop_record_failed")
 
     return 0
 

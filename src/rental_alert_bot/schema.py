@@ -131,6 +131,25 @@ MIGRATIONS = (
     CREATE INDEX idx_monitor_runs_status
         ON monitor_runs(status, completed_at);
     """,
+    """
+    CREATE TABLE service_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        process_name TEXT NOT NULL
+            CHECK (process_name IN ('local_service', 'monitor_loop')),
+        started_at TEXT NOT NULL,
+        stopped_at TEXT,
+        status TEXT NOT NULL DEFAULT 'running'
+            CHECK (status IN ('running', 'stopped', 'failed')),
+        stop_reason TEXT,
+        error_message TEXT
+    );
+
+    CREATE INDEX idx_service_runs_started_at
+        ON service_runs(started_at);
+
+    CREATE INDEX idx_service_runs_process_status
+        ON service_runs(process_name, status, started_at);
+    """,
 )
 
 LATEST_SCHEMA_VERSION = len(MIGRATIONS)

@@ -158,7 +158,7 @@ uv run --frozen rental-alert-bot --check</code></pre>
 uv run --frozen python .\scripts\init_database.py</code></pre>
       <p>
         預設建立 <code>./data/rental_alert.db</code>。指令可重複執行，只會套用尚未執行的
-        migration；目前 schema 版本為 v4。
+        migration；目前 schema 版本為 v5。
       </p>
     </section>
 
@@ -263,9 +263,9 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
     <section>
       <h2>驗證階段 5 長時間運行</h2>
       <p>
-        階段 5 的正式關卡不是「服務可以啟動」，而是本機完整服務連續運行至少 8 小時、
-        累積至少 90 次有實際檢查訂閱的監控輪詢、沒有未處理例外、沒有重複成功通知、SQLite 完整，
-        且人工抽查 20 筆 Telegram 圖片通知與房源一致。
+        階段 5 的正式關卡不是「服務可以啟動」，而是本機完整服務在驗收時間窗內累積至少 8 小時證據、
+        至少 90 次有實際檢查訂閱的監控輪詢、至少 2 次服務啟動紀錄、沒有未處理例外、沒有重複成功通知、
+        SQLite 完整，且人工抽查 20 筆 Telegram 圖片通知與房源一致。
       </p>
       <p>
         開始前先做預檢。它只讀取 SQLite 與非秘密輪詢設定，不會抓 591，也不會發 Telegram。
@@ -277,6 +277,14 @@ uv run --frozen python .\scripts\check_phase5_readiness.py</code></pre>
       <p>開始正式驗收前，先記錄 UTC 起始時間；後續驗證會只統計這個時間之後的監控輪詢。</p>
       <pre><code>$phase5Since = (Get-Date).ToUniversalTime().ToString("o")
 Write-Output $phase5Since</code></pre>
+      <p>
+        驗收期間需至少做一次冷啟動驗證：啟動本機完整服務，確認監控開始後用
+        <code>Ctrl+C</code> 正常停止，再用同一個指令重新啟動並繼續跑到時間與檢查次數達標。
+        服務每次啟動與停止會寫入 <code>service_runs</code>；驗證腳本預設要求至少 2 次服務啟動，
+        且不能留下仍標記為 running 或 failed 的服務紀錄。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <p>
         跑完本機長時間服務後，先匯出圖片通知抽查表。工具會從已成功送出的圖片通知中挑出候選資料，
         並拒絕覆寫既有檔案。
@@ -310,7 +318,7 @@ uv run --frozen python .\scripts\validate_phase5_runtime.py --since $phase5Since
       </ul>
     </section>
 
-    <footer>文件版本：v0.6 · 更新日期：2026-06-20</footer>
+    <footer>文件版本：v0.7 · 更新日期：2026-06-21</footer>
   </main>
 </body>
 </html>
