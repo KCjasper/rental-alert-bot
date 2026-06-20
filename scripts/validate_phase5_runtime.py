@@ -13,6 +13,7 @@ from rental_alert_bot.phase5_validation import (
     Phase5Requirements,
     validate_phase5_runtime,
 )
+from rental_alert_bot.schema_check import check_current_schema
 
 
 def main() -> int:
@@ -76,7 +77,14 @@ def main() -> int:
 
     settings = Settings.from_environment(require_secrets=False)
     database = Database(args.database or settings.database_path)
-    database.initialize()
+    schema_check = check_current_schema(database.path)
+    if not schema_check.current:
+        for line in schema_check.not_ready_lines(
+            status="PHASE5_RUNTIME_VALIDATION_NOT_READY",
+        ):
+            print(line)
+        return 1
+
     manual_image_spot_checks = args.manual_image_spot_checks
     failed_image_spot_checks = 0
     incomplete_image_spot_checks = 0

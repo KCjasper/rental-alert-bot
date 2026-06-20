@@ -8,9 +8,10 @@ from pathlib import Path
 
 from rental_alert_bot.config import Settings
 from rental_alert_bot.database import Database
-from rental_alert_bot.phase5_readiness import check_phase5_readiness, read_schema_version
+from rental_alert_bot.phase5_readiness import check_phase5_readiness
 from rental_alert_bot.phase5_validation import Phase5Requirements
 from rental_alert_bot.schema import LATEST_SCHEMA_VERSION
+from rental_alert_bot.schema_check import read_schema_version
 
 
 def main() -> int:

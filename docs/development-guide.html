@@ -255,6 +255,7 @@ uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <p>
         這個指令只讀取 SQLite，不會抓 591，也不會發 Telegram；可在階段 5 的長時間驗收期間查看
         active 訂閱、到期訂閱、待通知、成功與失敗通知數，以及總輪詢與有實際檢查訂閱的輪詢次數。
+        若資料庫 schema 過舊，工具會停止並提示先備份再初始化，不會自動 migration。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\monitor_status.py</code></pre>
@@ -287,7 +288,7 @@ Write-Output $phase5Since</code></pre>
 uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <p>
         跑完本機長時間服務後，先匯出圖片通知抽查表。工具會從已成功送出的圖片通知中挑出候選資料，
-        並拒絕覆寫既有檔案。
+        並拒絕覆寫既有檔案；若 schema 過舊，同樣會停止並要求先備份再初始化。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\export_phase5_image_audit.py --output .\outputs\phase5-image-audit.csv</code></pre>
@@ -296,6 +297,8 @@ uv run --frozen python .\scripts\export_phase5_image_audit.py --output .\outputs
         <code>image_matches</code> 欄填入 <code>yes</code> 或 <code>no</code>。
         再用完成的抽查檔驗證階段 5；未達標時腳本會回傳
         <code>PHASE5_RUNTIME_VALIDATION_INCOMPLETE</code> 並列出缺少或失敗的證據。
+        驗證腳本只讀取既有證據；若 schema 過舊，會回傳
+        <code>PHASE5_RUNTIME_VALIDATION_NOT_READY</code>，不會自動修改資料庫。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\validate_phase5_runtime.py --since $phase5Since --image-audit-file .\outputs\phase5-image-audit.csv</code></pre>

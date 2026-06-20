@@ -642,7 +642,14 @@
             會記錄服務啟動與正常停止／失敗停止；
             <code>scripts/validate_phase5_runtime.py</code> 預設要求驗收時間窗內至少 2 次服務啟動，
             且不得留下 running 或 failed 的服務紀錄，用資料庫證據覆蓋冷啟動驗收。
-            自動檢查已通過 112 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
+            自動檢查已通過 115 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
+          </div>
+          <div class="gate">
+            開發紀錄（2026-06-21）：已將 <code>scripts/monitor_status.py</code>、
+            <code>scripts/export_phase5_image_audit.py</code> 與
+            <code>scripts/validate_phase5_runtime.py</code> 改為只讀驗收資料庫。
+            若資料庫不存在或 schema 過舊，工具會輸出 NOT_READY 並要求先備份再初始化，
+            不會在查看狀態、匯出抽查表或驗證階段 5 時自動 migration。
           </div>
           <div class="gate">
             本機準備紀錄（2026-06-21）：已先用 <code>scripts/backup_database.py</code>
