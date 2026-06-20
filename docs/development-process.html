@@ -636,6 +636,15 @@
             驗證器支援 <code>--since</code>／<code>--until</code> 時間窗，正式驗收可排除較早測試紀錄。
             尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
           </div>
+          <div class="gate">
+            本機準備紀錄（2026-06-21）：已先用 <code>scripts/backup_database.py</code>
+            建立遷移前備份 <code>backups/rental-alert-pre-migration-20260621-011641.db</code>，
+            再將本機 <code>data/rental_alert.db</code> 從 schema v2 遷移到 schema v4。
+            <code>scripts/check_phase5_readiness.py</code> 已通過：目前有 1 組 active 訂閱、1 組 due 訂閱，
+            可開始第 5 階段長時間實跑驗收。因目前輪詢設定為 300 秒加上最多 30 秒隨機延遲，
+            要保證至少 90 次有效檢查需預留約 8.16 小時；第 5 階段仍需完成長時間實跑紀錄與
+            20 筆圖片人工抽查後才能通過。
+          </div>
         </article>
 
         <article class="phase" id="phase-6">
