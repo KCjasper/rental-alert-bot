@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from rental_alert_bot.config import Settings
@@ -50,6 +51,16 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--since",
+        type=_aware_datetime,
+        help="Only count monitor runs started at or after this ISO timestamp.",
+    )
+    parser.add_argument(
+        "--until",
+        type=_aware_datetime,
+        help="Only count monitor runs completed at or before this ISO timestamp.",
+    )
+    parser.add_argument(
         "--minimum-image-spot-checks",
         type=int,
         default=20,
@@ -79,10 +90,19 @@ def main() -> int:
         manual_image_spot_checks=manual_image_spot_checks,
         failed_image_spot_checks=failed_image_spot_checks,
         incomplete_image_spot_checks=incomplete_image_spot_checks,
+        evidence_since=args.since,
+        evidence_until=args.until,
     )
     for line in result.lines():
         print(line)
     return 0 if result.passed else 1
+
+
+def _aware_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        raise argparse.ArgumentTypeError("timestamp must include a timezone offset")
+    return parsed
 
 
 if __name__ == "__main__":

@@ -334,6 +334,7 @@
         供 <code>scripts/validate_phase5_runtime.py</code> 驗證 8 小時、90 次排程、
         無未處理例外、無重複通知與資料庫完整性。圖片人工抽查由
         <code>scripts/export_phase5_image_audit.py</code> 匯出候選 CSV，再由驗證腳本讀取已完成的抽查檔；
+        驗證腳本可用 <code>--since</code> 與 <code>--until</code> 限定正式驗收時間窗，避免歷史測試紀錄混入；
         實際 8 小時穩定性驗收仍在階段 5 後續工作中。
       </p>
     </section>

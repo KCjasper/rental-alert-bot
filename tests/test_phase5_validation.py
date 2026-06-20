@@ -158,3 +158,75 @@ def test_validate_phase5_runtime_detects_failed_image_spot_checks(
     assert result.passed is False
     assert result.failed_image_spot_checks == 1
     assert any("failed image spot checks" in failure for failure in result.failures)
+
+
+def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
+    tmp_path: Path,
+) -> None:
+    database, repo = repository(tmp_path / "rental.db")
+    old_started = NOW - timedelta(days=1)
+    window_started = NOW
+    window_completed = NOW + timedelta(hours=8)
+    repo.record_monitor_run(
+        started_at=old_started,
+        completed_at=old_started + timedelta(seconds=1),
+        checked_count=1,
+        succeeded_count=0,
+        failed_count=1,
+        sent_count=0,
+        notification_failed_count=0,
+        status="failed",
+        error_code="RuntimeError",
+    )
+    repo.record_monitor_run(
+        started_at=window_started,
+        completed_at=window_completed,
+        checked_count=1,
+        succeeded_count=1,
+        failed_count=0,
+        sent_count=0,
+        notification_failed_count=0,
+    )
+
+    without_window = validate_phase5_runtime(
+        database,
+        requirements=Phase5Requirements(
+            minimum_runtime_hours=0,
+            minimum_monitor_runs=1,
+            minimum_image_spot_checks=0,
+        ),
+    )
+    with_window = validate_phase5_runtime(
+        database,
+        requirements=Phase5Requirements(
+            minimum_runtime_hours=8,
+            minimum_monitor_runs=1,
+            minimum_image_spot_checks=0,
+        ),
+        evidence_since=window_started,
+    )
+
+    assert without_window.passed is False
+    assert any("unhandled monitor failures" in failure for failure in without_window.failures)
+    assert with_window.passed is True
+    assert with_window.monitor_run_count == 1
+    assert with_window.runtime_hours == 8
+    assert f"evidence_since={window_started.isoformat(timespec='microseconds')}" in (
+        with_window.lines()
+    )
+
+
+def test_validate_phase5_runtime_rejects_invalid_time_window(tmp_path: Path) -> None:
+    database = Database(tmp_path / "rental.db")
+    database.initialize()
+
+    try:
+        validate_phase5_runtime(
+            database,
+            evidence_since=NOW + timedelta(seconds=1),
+            evidence_until=NOW,
+        )
+    except ValueError as exc:
+        assert "evidence_since" in str(exc)
+    else:
+        raise AssertionError("expected invalid time window to be rejected")

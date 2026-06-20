@@ -21,6 +21,8 @@ class Phase5Requirements:
 class Phase5ValidationResult:
     database_path: Path
     database_integrity_ok: bool
+    evidence_since: str | None
+    evidence_until: str | None
     monitor_run_count: int
     failed_monitor_run_count: int
     first_started_at: str | None
@@ -49,6 +51,8 @@ class Phase5ValidationResult:
             status,
             f"database={self.database_path}",
             f"database_integrity_ok={self.database_integrity_ok}",
+            f"evidence_since={self.evidence_since or 'none'}",
+            f"evidence_until={self.evidence_until or 'none'}",
             f"monitor_run_count={self.monitor_run_count}",
             f"minimum_monitor_runs={self.requirements.minimum_monitor_runs}",
             f"failed_monitor_run_count={self.failed_monitor_run_count}",
@@ -76,8 +80,16 @@ def validate_phase5_runtime(
     manual_image_spot_checks: int = 0,
     failed_image_spot_checks: int = 0,
     incomplete_image_spot_checks: int = 0,
+    evidence_since: datetime | None = None,
+    evidence_until: datetime | None = None,
 ) -> Phase5ValidationResult:
     requirements = requirements or Phase5Requirements()
+    if (
+        evidence_since is not None
+        and evidence_until is not None
+        and evidence_since > evidence_until
+    ):
+        raise ValueError("evidence_since must be earlier than evidence_until")
     try:
         database.check_integrity()
         database_integrity_ok = True
@@ -86,8 +98,12 @@ def validate_phase5_runtime(
 
     with database.connect() as connection:
         connection.row_factory = sqlite3.Row
+        run_filter, run_parameters = _monitor_run_filter(
+            evidence_since=evidence_since,
+            evidence_until=evidence_until,
+        )
         run_summary = connection.execute(
-            """
+            f"""
             SELECT
                 COUNT(*) AS monitor_run_count,
                 SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END)
@@ -95,7 +111,9 @@ def validate_phase5_runtime(
                 MIN(started_at) AS first_started_at,
                 MAX(completed_at) AS latest_completed_at
             FROM monitor_runs
-            """
+            {run_filter}
+            """,
+            run_parameters,
         ).fetchone()
         duplicate_sent_count = int(
             connection.execute(
@@ -167,6 +185,8 @@ def validate_phase5_runtime(
     return Phase5ValidationResult(
         database_path=database.path,
         database_integrity_ok=database_integrity_ok,
+        evidence_since=_isoformat(evidence_since),
+        evidence_until=_isoformat(evidence_until),
         monitor_run_count=monitor_run_count,
         failed_monitor_run_count=failed_monitor_run_count,
         first_started_at=first_started_at,
@@ -181,6 +201,28 @@ def validate_phase5_runtime(
         requirements=requirements,
         failures=tuple(failures),
     )
+
+
+def _monitor_run_filter(
+    *,
+    evidence_since: datetime | None,
+    evidence_until: datetime | None,
+) -> tuple[str, tuple[str, ...]]:
+    clauses: list[str] = []
+    parameters: list[str] = []
+    if evidence_since is not None:
+        clauses.append("started_at >= ?")
+        parameters.append(evidence_since.isoformat(timespec="microseconds"))
+    if evidence_until is not None:
+        clauses.append("completed_at <= ?")
+        parameters.append(evidence_until.isoformat(timespec="microseconds"))
+    if not clauses:
+        return "", ()
+    return "WHERE " + " AND ".join(clauses), tuple(parameters)
+
+
+def _isoformat(value: datetime | None) -> str | None:
+    return value.isoformat(timespec="microseconds") if value is not None else None
 
 
 def _runtime_hours(first_started_at: str | None, latest_completed_at: str | None) -> float:
