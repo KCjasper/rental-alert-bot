@@ -4,9 +4,10 @@ from pathlib import Path
 import pytest
 
 from rental_alert_bot.database import Database
-from rental_alert_bot.phase5_readiness import check_phase5_readiness
+from rental_alert_bot.phase5_readiness import check_phase5_readiness, read_schema_version
 from rental_alert_bot.phase5_validation import Phase5Requirements
 from rental_alert_bot.repository import RentalRepository
+from rental_alert_bot.schema import LATEST_SCHEMA_VERSION
 
 NOW = datetime(2026, 6, 20, 12, 0, tzinfo=UTC)
 
@@ -125,3 +126,17 @@ def test_phase5_readiness_rejects_invalid_poll_settings(tmp_path: Path) -> None:
             poll_interval_seconds=0,
             poll_jitter_seconds=20,
         )
+
+
+def test_read_schema_version_does_not_create_missing_database(tmp_path: Path) -> None:
+    path = tmp_path / "missing.db"
+
+    assert read_schema_version(path) is None
+    assert path.exists() is False
+
+
+def test_read_schema_version_uses_read_only_database_access(tmp_path: Path) -> None:
+    database = Database(tmp_path / "rental.db")
+    database.initialize()
+
+    assert read_schema_version(database.path) == LATEST_SCHEMA_VERSION

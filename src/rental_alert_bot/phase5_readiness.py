@@ -134,6 +134,14 @@ def _guaranteed_runtime_hours(
     return ((minimum_runs - 1) * worst_case_period_seconds) / 3600
 
 
+def read_schema_version(path: Path) -> int | None:
+    if not path.exists():
+        return None
+    uri = path.resolve().as_uri() + "?mode=ro"
+    with sqlite3.connect(uri, uri=True) as connection:
+        return int(connection.execute("PRAGMA user_version").fetchone()[0])
+
+
 def _count(
     connection: sqlite3.Connection,
     query: str,

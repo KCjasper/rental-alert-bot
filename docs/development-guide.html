@@ -269,6 +269,7 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
       </p>
       <p>
         開始前先做預檢。它只讀取 SQLite 與非秘密輪詢設定，不會抓 591，也不會發 Telegram。
+        預檢不會自動升級資料庫 schema；若顯示 schema 過舊，先依備份流程建立備份，再執行初始化資料庫。
         若出現 warning，代表目前設定在最保守情況下可能需要跑超過 8 小時才能累積 90 次有效檢查。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
