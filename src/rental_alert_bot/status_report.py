@@ -21,6 +21,7 @@ class MonitorStatus:
     failed_notifications: int
     latest_check_at: str | None
     monitor_run_count: int
+    checked_monitor_run_count: int
     failed_monitor_run_count: int
     latest_monitor_run_at: str | None
 
@@ -35,6 +36,7 @@ class MonitorStatus:
             f"failed_notifications={self.failed_notifications}",
             f"latest_check_at={self.latest_check_at or 'none'}",
             f"monitor_run_count={self.monitor_run_count}",
+            f"checked_monitor_run_count={self.checked_monitor_run_count}",
             f"failed_monitor_run_count={self.failed_monitor_run_count}",
             f"latest_monitor_run_at={self.latest_monitor_run_at or 'none'}",
         )
@@ -83,6 +85,10 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
             "SELECT MAX(last_checked_at) FROM subscriptions",
         ).fetchone()[0]
         monitor_run_count = _count(connection, "SELECT COUNT(*) FROM monitor_runs")
+        checked_monitor_run_count = _count(
+            connection,
+            "SELECT COUNT(*) FROM monitor_runs WHERE checked_count > 0",
+        )
         failed_monitor_run_count = _count(
             connection,
             "SELECT COUNT(*) FROM monitor_runs WHERE status != 'completed'",
@@ -101,6 +107,7 @@ def build_monitor_status(database: Database, *, now: datetime) -> MonitorStatus:
         failed_notifications=failed_count,
         latest_check_at=latest_check,
         monitor_run_count=monitor_run_count,
+        checked_monitor_run_count=checked_monitor_run_count,
         failed_monitor_run_count=failed_monitor_run_count,
         latest_monitor_run_at=latest_monitor_run_at,
     )

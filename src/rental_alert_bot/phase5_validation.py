@@ -24,6 +24,7 @@ class Phase5ValidationResult:
     evidence_since: str | None
     evidence_until: str | None
     monitor_run_count: int
+    checked_monitor_run_count: int
     failed_monitor_run_count: int
     first_started_at: str | None
     latest_completed_at: str | None
@@ -54,6 +55,7 @@ class Phase5ValidationResult:
             f"evidence_since={self.evidence_since or 'none'}",
             f"evidence_until={self.evidence_until or 'none'}",
             f"monitor_run_count={self.monitor_run_count}",
+            f"checked_monitor_run_count={self.checked_monitor_run_count}",
             f"minimum_monitor_runs={self.requirements.minimum_monitor_runs}",
             f"failed_monitor_run_count={self.failed_monitor_run_count}",
             f"first_started_at={self.first_started_at or 'none'}",
@@ -106,6 +108,8 @@ def validate_phase5_runtime(
             f"""
             SELECT
                 COUNT(*) AS monitor_run_count,
+                SUM(CASE WHEN checked_count > 0 THEN 1 ELSE 0 END)
+                    AS checked_monitor_run_count,
                 SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END)
                     AS failed_monitor_run_count,
                 MIN(started_at) AS first_started_at,
@@ -152,14 +156,16 @@ def validate_phase5_runtime(
     latest_completed_at = run_summary["latest_completed_at"]
     runtime_hours = _runtime_hours(first_started_at, latest_completed_at)
     monitor_run_count = int(run_summary["monitor_run_count"] or 0)
+    checked_monitor_run_count = int(run_summary["checked_monitor_run_count"] or 0)
     failed_monitor_run_count = int(run_summary["failed_monitor_run_count"] or 0)
 
     failures: list[str] = []
     if not database_integrity_ok:
         failures.append("SQLite integrity check failed")
-    if monitor_run_count < requirements.minimum_monitor_runs:
+    if checked_monitor_run_count < requirements.minimum_monitor_runs:
         failures.append(
-            f"monitor runs {monitor_run_count} < {requirements.minimum_monitor_runs}"
+            "checked monitor runs "
+            f"{checked_monitor_run_count} < {requirements.minimum_monitor_runs}"
         )
     if runtime_hours < requirements.minimum_runtime_hours:
         failures.append(
@@ -188,6 +194,7 @@ def validate_phase5_runtime(
         evidence_since=_isoformat(evidence_since),
         evidence_until=_isoformat(evidence_until),
         monitor_run_count=monitor_run_count,
+        checked_monitor_run_count=checked_monitor_run_count,
         failed_monitor_run_count=failed_monitor_run_count,
         first_started_at=first_started_at,
         latest_completed_at=latest_completed_at,

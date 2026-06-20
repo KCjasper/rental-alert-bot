@@ -62,8 +62,8 @@ def test_validate_phase5_runtime_passes_when_evidence_meets_requirements(
     repo.record_monitor_run(
         started_at=NOW + timedelta(seconds=10),
         completed_at=NOW + timedelta(seconds=20),
-        checked_count=0,
-        succeeded_count=0,
+        checked_count=1,
+        succeeded_count=1,
         failed_count=0,
         sent_count=0,
         notification_failed_count=0,
@@ -81,6 +81,7 @@ def test_validate_phase5_runtime_passes_when_evidence_meets_requirements(
 
     assert result.passed is True
     assert result.monitor_run_count == 2
+    assert result.checked_monitor_run_count == 2
     assert result.runtime_hours > 0.001
     assert result.duplicate_sent_notification_count == 0
     assert result.image_listing_count == 1
@@ -95,9 +96,38 @@ def test_validate_phase5_runtime_reports_missing_evidence(tmp_path: Path) -> Non
 
     assert result.passed is False
     assert result.monitor_run_count == 0
-    assert any("monitor runs" in failure for failure in result.failures)
+    assert any("checked monitor runs" in failure for failure in result.failures)
     assert any("runtime hours" in failure for failure in result.failures)
     assert result.lines()[0] == "PHASE5_RUNTIME_VALIDATION_INCOMPLETE"
+
+
+def test_validate_phase5_runtime_does_not_count_idle_iterations(
+    tmp_path: Path,
+) -> None:
+    database, repo = repository(tmp_path / "rental.db")
+    repo.record_monitor_run(
+        started_at=NOW,
+        completed_at=NOW + timedelta(hours=8),
+        checked_count=0,
+        succeeded_count=0,
+        failed_count=0,
+        sent_count=0,
+        notification_failed_count=0,
+    )
+
+    result = validate_phase5_runtime(
+        database,
+        requirements=Phase5Requirements(
+            minimum_runtime_hours=8,
+            minimum_monitor_runs=1,
+            minimum_image_spot_checks=0,
+        ),
+    )
+
+    assert result.passed is False
+    assert result.monitor_run_count == 1
+    assert result.checked_monitor_run_count == 0
+    assert any("checked monitor runs 0 < 1" in failure for failure in result.failures)
 
 
 def test_validate_phase5_runtime_detects_duplicate_sent_notifications(
@@ -210,6 +240,7 @@ def test_validate_phase5_runtime_can_filter_monitor_runs_by_time_window(
     assert any("unhandled monitor failures" in failure for failure in without_window.failures)
     assert with_window.passed is True
     assert with_window.monitor_run_count == 1
+    assert with_window.checked_monitor_run_count == 1
     assert with_window.runtime_hours == 8
     assert f"evidence_since={window_started.isoformat(timespec='microseconds')}" in (
         with_window.lines()

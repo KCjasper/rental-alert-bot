@@ -254,7 +254,7 @@ uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <h2>查看監控狀態</h2>
       <p>
         這個指令只讀取 SQLite，不會抓 591，也不會發 Telegram；可在階段 5 的長時間驗收期間查看
-        active 訂閱、到期訂閱、待通知、成功與失敗通知數，以及已累積的監控輪詢次數。
+        active 訂閱、到期訂閱、待通知、成功與失敗通知數，以及總輪詢與有實際檢查訂閱的輪詢次數。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\monitor_status.py</code></pre>
@@ -264,7 +264,7 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
       <h2>驗證階段 5 長時間運行</h2>
       <p>
         階段 5 的正式關卡不是「服務可以啟動」，而是本機完整服務連續運行至少 8 小時、
-        累積至少 90 次監控輪詢、沒有未處理例外、沒有重複成功通知、SQLite 完整，
+        累積至少 90 次有實際檢查訂閱的監控輪詢、沒有未處理例外、沒有重複成功通知、SQLite 完整，
         且人工抽查 20 筆 Telegram 圖片通知與房源一致。
       </p>
       <p>開始正式驗收前，先記錄 UTC 起始時間；後續驗證會只統計這個時間之後的監控輪詢。</p>

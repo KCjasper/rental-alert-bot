@@ -80,9 +80,11 @@ def test_build_monitor_status_counts_operational_state(tmp_path: Path) -> None:
     assert status.failed_notifications == 1
     assert status.latest_check_at == NOW.isoformat(timespec="microseconds")
     assert status.monitor_run_count == 1
+    assert status.checked_monitor_run_count == 1
     assert status.failed_monitor_run_count == 0
     assert status.latest_monitor_run_at == (NOW + timedelta(seconds=1)).isoformat(
         timespec="microseconds"
     )
     assert "active_subscriptions=2" in status.lines()
     assert "monitor_run_count=1" in status.lines()
+    assert "checked_monitor_run_count=1" in status.lines()

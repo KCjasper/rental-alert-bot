@@ -618,7 +618,7 @@
               </ul>
             </section>
           </div>
-          <div class="gate">階段關卡：本機連續 8 小時完成至少 90 次排程，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
+          <div class="gate">階段關卡：本機連續 8 小時完成至少 90 次有實際檢查訂閱的排程，無未處理例外、無重複通知、無資料庫損壞，且 20 筆圖片人工抽查與房源一致。</div>
           <div class="gate">
             開發紀錄（2026-06-20）：已新增一次性與常駐監控服務，
             <code>scripts/run_monitor_once.py</code>、<code>scripts/run_monitor_loop.py</code>、
@@ -628,9 +628,9 @@
             單輪未預期錯誤記錄後繼續下一輪，以及 SIGINT/SIGTERM 優雅停止。
             圖片通知已支援公開首圖 URL 保存、Telegram <code>sendPhoto</code> 發送，以及圖片失敗時退回文字通知。
             每次監控輪詢會寫入 <code>monitor_runs</code>，<code>scripts/monitor_status.py</code>
-            可只讀輸出 active、due、pending、sent、failed 與監控輪詢累積狀態；
+            可只讀輸出 active、due、pending、sent、failed、總輪詢與有效檢查輪詢累積狀態；
             <code>scripts/export_phase5_image_audit.py</code> 可匯出圖片通知人工抽查表，
-            <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次排程、
+            <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次有實際檢查訂閱的排程、
             無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果；
             驗證器支援 <code>--since</code>／<code>--until</code> 時間窗，正式驗收可排除較早測試紀錄。
             尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
