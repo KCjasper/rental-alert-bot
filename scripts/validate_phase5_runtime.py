@@ -13,6 +13,7 @@ from rental_alert_bot.phase5_validation import (
     Phase5Requirements,
     validate_phase5_runtime,
 )
+from rental_alert_bot.phase5_window import load_phase5_window
 from rental_alert_bot.schema_check import check_current_schema
 
 
@@ -57,6 +58,14 @@ def main() -> int:
         help="Only count monitor runs started at or after this ISO timestamp.",
     )
     parser.add_argument(
+        "--window-file",
+        type=Path,
+        help=(
+            "Phase 5 window JSON created by create_phase5_window.py. "
+            "Cannot be used together with --since."
+        ),
+    )
+    parser.add_argument(
         "--until",
         type=_aware_datetime,
         help="Only count monitor runs completed at or before this ISO timestamp.",
@@ -74,6 +83,8 @@ def main() -> int:
         help="Minimum service starts in the evidence window. Default: 2.",
     )
     args = parser.parse_args()
+    if args.since is not None and args.window_file is not None:
+        parser.error("--since and --window-file cannot be used together")
 
     settings = Settings.from_environment(require_secrets=False)
     database = Database(args.database or settings.database_path)
@@ -93,6 +104,9 @@ def main() -> int:
         manual_image_spot_checks = audit_summary.passed_checks
         failed_image_spot_checks = audit_summary.failed_checks
         incomplete_image_spot_checks = audit_summary.incomplete_checks
+    evidence_since = args.since
+    if args.window_file is not None:
+        evidence_since = load_phase5_window(args.window_file).since
 
     result = validate_phase5_runtime(
         database,
@@ -105,7 +119,7 @@ def main() -> int:
         manual_image_spot_checks=manual_image_spot_checks,
         failed_image_spot_checks=failed_image_spot_checks,
         incomplete_image_spot_checks=incomplete_image_spot_checks,
-        evidence_since=args.since,
+        evidence_since=evidence_since,
         evidence_until=args.until,
     )
     for line in result.lines():

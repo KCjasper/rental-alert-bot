@@ -276,9 +276,12 @@ uv run --frozen python .\scripts\monitor_status.py</code></pre>
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\check_phase5_readiness.py</code></pre>
-      <p>開始正式驗收前，先記錄 UTC 起始時間；後續驗證會只統計這個時間之後的監控輪詢。</p>
-      <pre><code>$phase5Since = (Get-Date).ToUniversalTime().ToString("o")
-Write-Output $phase5Since</code></pre>
+      <p>
+        開始正式驗收前，先建立驗收時間窗檔案；後續驗證會只統計這個時間之後的監控輪詢。
+        工具會拒絕覆寫既有檔案，避免誤把正式驗收起始時間蓋掉。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\create_phase5_window.py --output .\outputs\phase5-window.json</code></pre>
       <p>
         驗收期間需至少做一次冷啟動驗證：啟動本機完整服務，確認監控開始後用
         <code>Ctrl+C</code> 正常停止，再用同一個指令重新啟動並繼續跑到時間與檢查次數達標。
@@ -302,7 +305,7 @@ uv run --frozen python .\scripts\export_phase5_image_audit.py --output .\outputs
         <code>PHASE5_RUNTIME_VALIDATION_NOT_READY</code>，不會自動修改資料庫。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
-uv run --frozen python .\scripts\validate_phase5_runtime.py --since $phase5Since --image-audit-file .\outputs\phase5-image-audit.csv</code></pre>
+uv run --frozen python .\scripts\validate_phase5_runtime.py --window-file .\outputs\phase5-window.json --image-audit-file .\outputs\phase5-image-audit.csv</code></pre>
       <p>
         只有輸出 <code>PHASE5_RUNTIME_VALIDATION_OK</code>，才可將階段 5 標記為通過並進入 Railway 部署階段。
       </p>

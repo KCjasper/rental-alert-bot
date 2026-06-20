@@ -633,8 +633,16 @@
             <code>scripts/export_phase5_image_audit.py</code> 可匯出圖片通知人工抽查表，
             <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次有實際檢查訂閱的排程、
             至少 2 次服務啟動、無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果；
-            驗證器支援 <code>--since</code>／<code>--until</code> 時間窗，正式驗收可排除較早測試紀錄。
+            <code>scripts/create_phase5_window.py</code> 可建立不覆寫的驗收時間窗 JSON；
+            驗證器支援 <code>--window-file</code>、<code>--since</code>／<code>--until</code> 時間窗，
+            正式驗收可排除較早測試紀錄。
             尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
+          </div>
+          <div class="gate">
+            開發紀錄（2026-06-21）：已新增 <code>scripts/create_phase5_window.py</code>
+            與 <code>phase5-window.json</code> 流程，正式實跑前可先保存 UTC 起始時間；
+            <code>scripts/validate_phase5_runtime.py</code> 支援 <code>--window-file</code>，
+            避免長時間驗收後遺失或誤填 <code>--since</code>。
           </div>
           <div class="gate">
             開發紀錄（2026-06-21）：已新增 schema v5 <code>service_runs</code>，
@@ -642,7 +650,7 @@
             會記錄服務啟動與正常停止／失敗停止；
             <code>scripts/validate_phase5_runtime.py</code> 預設要求驗收時間窗內至少 2 次服務啟動，
             且不得留下 running 或 failed 的服務紀錄，用資料庫證據覆蓋冷啟動驗收。
-            自動檢查已通過 115 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
+            自動檢查已通過 120 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
           </div>
           <div class="gate">
             開發紀錄（2026-06-21）：已將 <code>scripts/monitor_status.py</code>、
