@@ -57,6 +57,19 @@ class FakeRentalFetcher:
         return self.pages[min(len(self.fetched_urls) - 1, len(self.pages) - 1)]
 
 
+class SequenceRentalFetcher:
+    def __init__(self, results: list[RentalSearchPage | Exception]) -> None:
+        self.results = results
+        self.fetched_urls: list[str] = []
+
+    def fetch(self, raw_url: str) -> RentalSearchPage:
+        self.fetched_urls.append(raw_url)
+        result = self.results[min(len(self.fetched_urls) - 1, len(self.results) - 1)]
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
 def listing(listing_id: str, *, image_url: str | None = None) -> RentalListing:
     return RentalListing(
         listing_id=listing_id,
@@ -240,13 +253,65 @@ def test_repeated_591_failures_record_check_and_send_alert(tmp_path: Path) -> No
 
     first = monitor.check_subscription(subscription)
     second = monitor.check_subscription(subscription)
+    third = monitor.check_subscription(subscription)
 
     assert first.succeeded is False
     assert second.succeeded is False
+    assert third.succeeded is False
     assert repo.get_subscription(subscription.id).last_success_at is None
     assert repo.get_subscription(subscription.id).next_check_at == NOW + timedelta(seconds=307)
     assert len(telegram.sent_messages) == 1
     assert "系統告警" in telegram.texts[0]
+
+
+def test_591_failure_recovery_sends_single_recovery_notification(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    subscription = active_subscription(repo)
+    telegram = FakeTelegram()
+    blocked = RentalPageBlockedError("blocked by verification")
+    monitor = service(
+        repo,
+        telegram,
+        SequenceRentalFetcher(
+            [
+                blocked,
+                blocked,
+                RentalSearchPage(total_count=1, listings=(listing("90000001"),)),
+                RentalSearchPage(total_count=1, listings=(listing("90000001"),)),
+            ]
+        ),
+    )
+
+    assert monitor.check_subscription(subscription).succeeded is False
+    assert monitor.check_subscription(subscription).succeeded is False
+    recovered = monitor.check_subscription(subscription)
+    still_healthy = monitor.check_subscription(subscription)
+
+    assert recovered.succeeded is True
+    assert still_healthy.succeeded is True
+    assert sum("系統告警" in text for text in telegram.texts) == 1
+    assert sum("已恢復" in text for text in telegram.texts) == 1
+    assert "先前連續失敗次數：2" in telegram.texts[1]
+
+
+def test_failure_alert_send_error_does_not_fail_subscription_check(
+    tmp_path: Path,
+) -> None:
+    repo = repository(tmp_path / "rental.db")
+    subscription = active_subscription(repo)
+    telegram = FakeTelegram(fail_after=0)
+    monitor = service(
+        repo,
+        telegram,
+        FakeRentalFetcher(error=RentalPageBlockedError("blocked by verification")),
+    )
+
+    first = monitor.check_subscription(subscription)
+    second = monitor.check_subscription(subscription)
+
+    assert first.succeeded is False
+    assert second.succeeded is False
+    assert telegram.sent_messages == []
 
 
 def test_due_subscription_failure_is_counted_in_monitor_run(tmp_path: Path) -> None:

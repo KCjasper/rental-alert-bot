@@ -63,6 +63,7 @@ class MonitoringService:
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)
     random_integer: Callable[[int, int], int] = random.randint
     _consecutive_failures: dict[int, int] = field(default_factory=dict)
+    _alerted_failures: set[int] = field(default_factory=set)
 
     def check_due_subscriptions(self) -> tuple[SubscriptionCheckResult, ...]:
         started_at = self.clock()
@@ -130,7 +131,7 @@ class MonitoringService:
             succeeded=True,
             next_check_at=next_check_at,
         )
-        self._consecutive_failures.pop(subscription.id, None)
+        self._record_subscription_recovery(subscription)
         sent_count, failed_count = self._send_pending_notifications(subscription.id)
 
         return SubscriptionCheckResult(
@@ -196,20 +197,49 @@ class MonitoringService:
     ) -> None:
         failure_count = self._consecutive_failures.get(subscription.id, 0) + 1
         self._consecutive_failures[subscription.id] = failure_count
-        if failure_count < self.settings.failure_alert_threshold:
+        if (
+            failure_count < self.settings.failure_alert_threshold
+            or subscription.id in self._alerted_failures
+        ):
             return
 
-        self.telegram.send_message(
-            self.settings.alert_chat_id,
-            "\n".join(
-                [
-                    "系統告警：591 搜尋檢查連續失敗",
-                    f"訂閱：#{subscription.id} {subscription.name}",
-                    f"連續失敗次數：{failure_count}",
-                    f"錯誤：{exc}",
-                ]
-            ),
-        )
+        try:
+            self.telegram.send_message(
+                self.settings.alert_chat_id,
+                "\n".join(
+                    [
+                        "系統告警：591 搜尋檢查連續失敗",
+                        f"訂閱：#{subscription.id} {subscription.name}",
+                        f"連續失敗次數：{failure_count}",
+                        f"錯誤：{exc}",
+                    ]
+                ),
+            )
+        except TelegramApiError:
+            return
+
+        self._alerted_failures.add(subscription.id)
+
+    def _record_subscription_recovery(self, subscription: Subscription) -> None:
+        previous_failure_count = self._consecutive_failures.pop(subscription.id, 0)
+        if subscription.id not in self._alerted_failures:
+            return
+
+        try:
+            self.telegram.send_message(
+                self.settings.alert_chat_id,
+                "\n".join(
+                    [
+                        "系統通知：591 搜尋檢查已恢復",
+                        f"訂閱：#{subscription.id} {subscription.name}",
+                        f"先前連續失敗次數：{previous_failure_count}",
+                    ]
+                ),
+            )
+        except TelegramApiError:
+            return
+
+        self._alerted_failures.discard(subscription.id)
 
     def _next_check_at(self) -> datetime:
         jitter = (
