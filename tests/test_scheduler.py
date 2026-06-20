@@ -9,11 +9,14 @@ from rental_alert_bot.scheduler import (
 
 
 class FakeMonitor:
-    def __init__(self) -> None:
+    def __init__(self, *, fail_first_call: bool = False) -> None:
         self.calls = 0
+        self.fail_first_call = fail_first_call
 
     def check_due_subscriptions(self) -> tuple[SubscriptionCheckResult, ...]:
         self.calls += 1
+        if self.fail_first_call and self.calls == 1:
+            raise RuntimeError("unexpected monitor failure")
         return (
             SubscriptionCheckResult(
                 subscription_id=1,
@@ -28,6 +31,19 @@ class FakeMonitor:
 
 def test_scheduler_runs_until_max_iterations() -> None:
     monitor = FakeMonitor()
+    scheduler = MonitoringScheduler(
+        monitor=monitor,  # type: ignore[arg-type]
+        settings=SchedulerSettings(idle_sleep_seconds=0.001),
+    )
+
+    iterations = scheduler.run_forever(max_iterations=3)
+
+    assert iterations == 3
+    assert monitor.calls == 3
+
+
+def test_scheduler_continues_after_iteration_error() -> None:
+    monitor = FakeMonitor(fail_first_call=True)
     scheduler = MonitoringScheduler(
         monitor=monitor,  # type: ignore[arg-type]
         settings=SchedulerSettings(idle_sleep_seconds=0.001),

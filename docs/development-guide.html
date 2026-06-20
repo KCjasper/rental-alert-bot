@@ -236,6 +236,7 @@ uv run --frozen python .\scripts\run_monitor_once.py</code></pre>
 uv run --frozen python .\scripts\run_monitor_loop.py</code></pre>
       <p>
         若只想測監控，可單獨啟動本腳本；若要同時保留 Telegram 指令操作，請使用下一段的單一程序入口。
+        常駐排程遇到單輪未預期錯誤時會記錄錯誤並繼續下一輪，不會因單次例外直接退出。
       </p>
     </section>
 

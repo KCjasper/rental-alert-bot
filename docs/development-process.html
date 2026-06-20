@@ -625,7 +625,7 @@
             <code>scripts/run_local_service.py</code>
             可處理到期 active 訂閱、新房源通知去重、Telegram 發送失敗保留待重試、
             591 連續失敗告警、告警去重、恢復通知、Telegram 指令 long polling，
-            以及 SIGINT/SIGTERM 優雅停止。
+            單輪未預期錯誤記錄後繼續下一輪，以及 SIGINT/SIGTERM 優雅停止。
             圖片通知已支援公開首圖 URL 保存、Telegram <code>sendPhoto</code> 發送，以及圖片失敗時退回文字通知。
             每次監控輪詢會寫入 <code>monitor_runs</code>，<code>scripts/monitor_status.py</code>
             可只讀輸出 active、due、pending、sent、failed 與監控輪詢累積狀態；

@@ -30,7 +30,12 @@ class MonitoringScheduler:
     )
 
     def run_once(self) -> tuple[SubscriptionCheckResult, ...]:
-        results = self.monitor.check_due_subscriptions()
+        try:
+            results = self.monitor.check_due_subscriptions()
+        except Exception:
+            self.logger.exception("monitor_scheduler_iteration_failed")
+            return ()
+
         self.logger.info(
             "monitor_scheduler_iteration_completed",
             extra={
