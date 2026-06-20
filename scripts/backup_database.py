@@ -20,7 +20,9 @@ def main() -> int:
     args = parser.parse_args()
 
     source = Database(args.source)
-    source.initialize()
+    if not source.path.exists():
+        raise FileNotFoundError(f"source database does not exist: {source.path}")
+    source.check_integrity()
     backup_path = source.backup_to(args.destination)
     print(f"BACKUP_OK source={source.path} destination={backup_path}")
     return 0

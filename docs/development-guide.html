@@ -168,7 +168,7 @@ uv run --frozen python .\scripts\init_database.py</code></pre>
   --destination .\backups\rental-alert-2026-06-15.db</code></pre>
       <p>
         備份使用 SQLite online backup API 並執行完整性檢查。若目標檔已存在，工具會停止，
-        不會覆蓋原備份。
+        不會覆蓋原備份；備份來源資料庫不會在備份前自動 migration。
       </p>
       <p>還原時先停止服務，保留目前資料庫，再將設定指向新的還原檔：</p>
       <pre><code>$env:DATABASE_PATH = ".\data\rental-alert-restored.db"
