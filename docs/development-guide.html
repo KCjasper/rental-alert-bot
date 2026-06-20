@@ -292,7 +292,8 @@ uv run --frozen python .\scripts\create_phase5_window.py --output .\outputs\phas
 uv run --frozen python .\scripts\run_local_service.py</code></pre>
       <p>
         跑完本機長時間服務後，先匯出圖片通知抽查表。工具會從已成功送出的圖片通知中挑出候選資料，
-        並拒絕覆寫既有檔案；若 schema 過舊，同樣會停止並要求先備份再初始化。
+        預設要求至少 20 筆候選，候選不足時不會建立 CSV；工具也會拒絕覆寫既有檔案。
+        若 schema 過舊，同樣會停止並要求先備份再初始化。
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\export_phase5_image_audit.py --output .\outputs\phase5-image-audit.csv</code></pre>

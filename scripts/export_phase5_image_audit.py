@@ -7,7 +7,10 @@ from pathlib import Path
 
 from rental_alert_bot.config import Settings
 from rental_alert_bot.database import Database
-from rental_alert_bot.phase5_image_audit import export_image_audit_template
+from rental_alert_bot.phase5_image_audit import (
+    NotEnoughImageAuditCandidatesError,
+    export_image_audit_template,
+)
 from rental_alert_bot.schema_check import check_current_schema
 
 
@@ -32,6 +35,12 @@ def main() -> int:
         default=20,
         help="Maximum number of image notification rows to export. Default: 20.",
     )
+    parser.add_argument(
+        "--minimum-candidates",
+        type=int,
+        default=20,
+        help="Minimum required image notification rows. Default: 20.",
+    )
     args = parser.parse_args()
 
     settings = Settings.from_environment(require_secrets=False)
@@ -42,7 +51,23 @@ def main() -> int:
             print(line)
         return 1
 
-    destination = export_image_audit_template(database, args.output, limit=args.limit)
+    try:
+        destination = export_image_audit_template(
+            database,
+            args.output,
+            limit=args.limit,
+            minimum_candidates=args.minimum_candidates,
+        )
+    except NotEnoughImageAuditCandidatesError as exc:
+        print("PHASE5_IMAGE_AUDIT_NOT_READY")
+        print(f"database={database.path}")
+        print(f"candidate_count={exc.candidate_count}")
+        print(f"minimum_candidates={exc.minimum_candidates}")
+        print(
+            "failure=not enough sent image notifications for phase 5 manual audit",
+        )
+        return 1
+
     print(f"PHASE5_IMAGE_AUDIT_EXPORTED path={destination}")
     return 0
 

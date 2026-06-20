@@ -42,6 +42,16 @@ class ImageAuditSummary:
     incomplete_checks: int
 
 
+class NotEnoughImageAuditCandidatesError(ValueError):
+    def __init__(self, *, candidate_count: int, minimum_candidates: int) -> None:
+        self.candidate_count = candidate_count
+        self.minimum_candidates = minimum_candidates
+        super().__init__(
+            "not enough image audit candidates "
+            f"{candidate_count} < {minimum_candidates}"
+        )
+
+
 def list_image_audit_candidates(
     database: Database,
     *,
@@ -91,12 +101,22 @@ def export_image_audit_template(
     destination: Path | str,
     *,
     limit: int = 20,
+    minimum_candidates: int = 0,
 ) -> Path:
+    if minimum_candidates < 0:
+        raise ValueError("minimum_candidates must be zero or greater")
+
     destination_path = Path(destination)
     if destination_path.exists():
         raise FileExistsError(f"image audit file already exists: {destination_path}")
 
     candidates = list_image_audit_candidates(database, limit=limit)
+    if len(candidates) < minimum_candidates:
+        raise NotEnoughImageAuditCandidatesError(
+            candidate_count=len(candidates),
+            minimum_candidates=minimum_candidates,
+        )
+
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     with destination_path.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=AUDIT_COLUMNS)

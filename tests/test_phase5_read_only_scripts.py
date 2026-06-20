@@ -52,6 +52,28 @@ def test_export_phase5_image_audit_script_does_not_migrate_old_database(
     assert schema_version(database) == 4
 
 
+def test_export_phase5_image_audit_script_requires_enough_candidates(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "rental.db"
+    Database(database_path).initialize()
+    output = tmp_path / "audit.csv"
+
+    result = run_script(
+        "scripts/export_phase5_image_audit.py",
+        "--database",
+        str(database_path),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 1
+    assert "PHASE5_IMAGE_AUDIT_NOT_READY" in result.stdout
+    assert "candidate_count=0" in result.stdout
+    assert "minimum_candidates=20" in result.stdout
+    assert output.exists() is False
+
+
 def test_monitor_status_script_does_not_migrate_old_database(tmp_path: Path) -> None:
     database = create_old_database(tmp_path / "old.db")
 

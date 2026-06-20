@@ -7,6 +7,7 @@ import pytest
 from rental_alert_bot.database import Database
 from rental_alert_bot.listing import RentalListing
 from rental_alert_bot.phase5_image_audit import (
+    NotEnoughImageAuditCandidatesError,
     export_image_audit_template,
     list_image_audit_candidates,
     summarize_image_audit_file,
@@ -73,6 +74,30 @@ def test_exports_image_audit_template_from_sent_image_notifications(
     assert rows[0]["image_matches"] == ""
     with pytest.raises(FileExistsError):
         export_image_audit_template(database, output)
+
+
+def test_rejects_export_when_image_audit_candidates_are_insufficient(
+    tmp_path: Path,
+) -> None:
+    database, repo = repository(tmp_path / "rental.db")
+    subscription = create_subscription(repo)
+    repo.record_discovered_listings(
+        subscription.id,
+        [listing("90000001", image_url="https://hp1.591.com.tw/one.jpg")],
+    )
+    repo.record_notification_success(subscription.id, "90000001")
+    output = tmp_path / "audit.csv"
+
+    with pytest.raises(NotEnoughImageAuditCandidatesError) as exc_info:
+        export_image_audit_template(
+            database,
+            output,
+            minimum_candidates=2,
+        )
+
+    assert exc_info.value.candidate_count == 1
+    assert exc_info.value.minimum_candidates == 2
+    assert output.exists() is False
 
 
 def test_summarizes_completed_image_audit_file(tmp_path: Path) -> None:

@@ -630,7 +630,7 @@
             每次監控輪詢會寫入 <code>monitor_runs</code>，<code>scripts/monitor_status.py</code>
             可只讀輸出 active、due、pending、sent、failed、總輪詢、有效檢查輪詢與服務啟停累積狀態；
             <code>scripts/check_phase5_readiness.py</code> 可在 8 小時實跑前檢查 active/due 訂閱與輪詢設定；
-            <code>scripts/export_phase5_image_audit.py</code> 可匯出圖片通知人工抽查表，
+            <code>scripts/export_phase5_image_audit.py</code> 可在候選達 20 筆時匯出圖片通知人工抽查表，
             <code>scripts/validate_phase5_runtime.py</code> 可檢查 8 小時、至少 90 次有實際檢查訂閱的排程、
             至少 2 次服務啟動、無未處理例外、無重複成功通知、資料庫完整性，以及已完成抽查檔中的圖片一致性結果；
             <code>scripts/create_phase5_window.py</code> 可建立不覆寫的驗收時間窗 JSON；
@@ -650,7 +650,7 @@
             會記錄服務啟動與正常停止／失敗停止；
             <code>scripts/validate_phase5_runtime.py</code> 預設要求驗收時間窗內至少 2 次服務啟動，
             且不得留下 running 或 failed 的服務紀錄，用資料庫證據覆蓋冷啟動驗收。
-            自動檢查已通過 120 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
+            自動檢查已通過 122 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
           </div>
           <div class="gate">
             開發紀錄（2026-06-21）：已將 <code>scripts/monitor_status.py</code>、
