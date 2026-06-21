@@ -650,7 +650,9 @@
             會記錄服務啟動與正常停止／失敗停止；
             <code>scripts/validate_phase5_runtime.py</code> 預設要求驗收時間窗內至少 2 次服務啟動，
             且不得留下 running 或 failed 的服務紀錄，用資料庫證據覆蓋冷啟動驗收。
-            自動檢查已通過 122 項測試；實跑時需在驗收期間正常停止一次服務並重新啟動。
+            <code>scripts/run_local_service.py --duration-seconds</code> 可讓服務自行正常停止，
+            實跑時需在驗收期間正常停止一次服務並重新啟動。
+            自動檢查已通過 122 項測試。
           </div>
           <div class="gate">
             開發紀錄（2026-06-21）：已將 <code>scripts/monitor_status.py</code>、

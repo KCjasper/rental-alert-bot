@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import logging
 import signal
 import threading
@@ -19,6 +20,18 @@ from rental_alert_bot.telegram_polling_service import TelegramPollingService
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run Telegram commands and rental monitoring in one local process.",
+    )
+    parser.add_argument(
+        "--duration-seconds",
+        type=float,
+        help="Stop gracefully after this many seconds. Useful for phase 5 validation.",
+    )
+    args = parser.parse_args()
+    if args.duration_seconds is not None and args.duration_seconds <= 0:
+        parser.error("--duration-seconds must be greater than zero")
+
     settings = Settings.from_environment(require_secrets=True)
     configure_logging(settings.log_level)
     logger = logging.getLogger(__name__)
@@ -75,6 +88,15 @@ def main() -> int:
                 logger=logger,
             )
             _install_stop_handlers(scheduler, polling, logger)
+            stop_timer: threading.Timer | None = None
+            if args.duration_seconds is not None:
+                stop_timer = threading.Timer(
+                    args.duration_seconds,
+                    _request_stop,
+                    args=(scheduler, polling, logger, "duration_elapsed"),
+                )
+                stop_timer.daemon = True
+                stop_timer.start()
 
             scheduler_thread = threading.Thread(
                 target=scheduler.run_forever,
@@ -86,6 +108,8 @@ def main() -> int:
             try:
                 polling.run_forever()
             finally:
+                if stop_timer is not None:
+                    stop_timer.cancel()
                 scheduler.stop()
                 scheduler_thread.join(timeout=10)
                 logger.info("local_service_stopped")
@@ -113,12 +137,21 @@ def _install_stop_handlers(
     logger: logging.Logger,
 ) -> None:
     def request_stop(signum: int, _frame: object) -> None:
-        logger.info("local_service_stop_requested", extra={"signal": signum})
-        scheduler.stop()
-        polling.stop()
+        _request_stop(scheduler, polling, logger, f"signal_{signum}")
 
     for item in (signal.SIGINT, signal.SIGTERM):
         signal.signal(item, request_stop)
+
+
+def _request_stop(
+    scheduler: MonitoringScheduler,
+    polling: TelegramPollingService,
+    logger: logging.Logger,
+    reason: str,
+) -> None:
+    logger.info("local_service_stop_requested", extra={"reason": reason})
+    scheduler.stop()
+    polling.stop()
 
 
 if __name__ == "__main__":

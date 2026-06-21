@@ -248,6 +248,12 @@ uv run --frozen python .\scripts\run_monitor_loop.py</code></pre>
       </p>
       <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
 uv run --frozen python .\scripts\run_local_service.py</code></pre>
+      <p>
+        若要讓程式自行正常停止，可加上 <code>--duration-seconds</code>。
+        Phase 5 冷啟動驗收可先短跑一次並自動停止，再重新啟動長時間服務。
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\run_local_service.py --duration-seconds 600</code></pre>
     </section>
 
     <section>
