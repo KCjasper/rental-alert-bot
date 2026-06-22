@@ -26,6 +26,12 @@ def main() -> int:
     database = Database(settings.database_path)
     database.initialize()
     repository = RentalRepository(database)
+    stale_service_runs = repository.mark_stale_service_runs(process_name="monitor_loop")
+    if stale_service_runs:
+        logger.warning(
+            "stale_service_runs_recovered",
+            extra={"process_name": "monitor_loop", "count": stale_service_runs},
+        )
     service_run = repository.record_service_start(process_name="monitor_loop")
     stop_status = "stopped"
     stop_error: str | None = None

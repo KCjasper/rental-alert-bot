@@ -353,11 +353,40 @@ def test_records_service_runs_for_cold_start_validation(tmp_path: Path) -> None:
     assert repo.list_service_runs() == (stopped_run,)
 
 
+def test_marks_stale_service_runs_before_new_start(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "rental.db")
+    stale_started = NOW - timedelta(minutes=5)
+    recovered_at = NOW
+
+    stale_run = repo.record_service_start(
+        process_name="local_service",
+        started_at=stale_started,
+    )
+    recovered_count = repo.mark_stale_service_runs(
+        process_name="local_service",
+        stopped_at=recovered_at,
+    )
+    new_run = repo.record_service_start(
+        process_name="local_service",
+        started_at=NOW + timedelta(seconds=1),
+    )
+
+    stale_after_recovery = repo.get_service_run(stale_run.id)
+    assert recovered_count == 1
+    assert stale_after_recovery.status == "failed"
+    assert stale_after_recovery.stopped_at == recovered_at
+    assert stale_after_recovery.stop_reason == "stale_startup_recovery"
+    assert "clean stop" in (stale_after_recovery.error_message or "")
+    assert new_run.status == "running"
+
+
 def test_rejects_invalid_service_run_state(tmp_path: Path) -> None:
     repo = repository(tmp_path / "rental.db")
 
     with pytest.raises(RepositoryError, match="unknown service"):
         repo.record_service_start(process_name="unknown")
+    with pytest.raises(RepositoryError, match="unknown service"):
+        repo.mark_stale_service_runs(process_name="unknown")
 
     service_run = repo.record_service_start(process_name="monitor_loop")
     repo.record_service_stop(service_run.id)

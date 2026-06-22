@@ -664,6 +664,31 @@ class RentalRepository:
             service_run_id = int(cursor.lastrowid)
         return self.get_service_run(service_run_id)
 
+    def mark_stale_service_runs(
+        self,
+        *,
+        process_name: str,
+        stopped_at: datetime | None = None,
+        stop_reason: str = "stale_startup_recovery",
+    ) -> int:
+        if process_name not in {"local_service", "monitor_loop"}:
+            raise RepositoryError("unknown service process name")
+
+        stopped = stopped_at or self._clock()
+        with self._database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE service_runs
+                SET stopped_at = ?,
+                    status = 'failed',
+                    stop_reason = ?,
+                    error_message = 'Previous process did not record a clean stop.'
+                WHERE process_name = ? AND status = 'running'
+                """,
+                (_timestamp(stopped), stop_reason, process_name),
+            )
+        return cursor.rowcount
+
     def record_service_stop(
         self,
         service_run_id: int,

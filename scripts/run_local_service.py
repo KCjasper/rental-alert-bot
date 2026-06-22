@@ -40,6 +40,12 @@ def main() -> int:
     database = Database(settings.database_path)
     database.initialize()
     repository = RentalRepository(database)
+    stale_service_runs = repository.mark_stale_service_runs(process_name="local_service")
+    if stale_service_runs:
+        logger.warning(
+            "stale_service_runs_recovered",
+            extra={"process_name": "local_service", "count": stale_service_runs},
+        )
     service_run = repository.record_service_start(process_name="local_service")
     health_server: HealthServer | None = None
     stop_status = "stopped"
