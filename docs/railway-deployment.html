@@ -160,11 +160,11 @@
     </header>
 
     <section>
-      <h2>部署前狀態</h2>
+      <h2>部署狀態</h2>
       <div class="card ok">
-        <p>第 5 階段已通過：本機服務累積 8.81 小時、100 次有效檢查、0 次失敗、0 筆重複成功通知，20 筆圖片人工抽查皆正確。</p>
+        <p>第 6 階段已通過：Railway 服務、Volume、Variables、健康檢查、強制重啟、重新部署與 Telegram 指令驗收皆已完成。</p>
       </div>
-      <p>第 6 階段完成前，Railway 端仍必須實際完成一次重新部署與一次強制重啟，並確認 SQLite 訂閱與去重資料沒有遺失。</p>
+      <p>第 7 階段需在雲端建立真實搜尋訂閱，累積 72 小時運行證據，並驗證房源去重、告警、備份與回退流程。</p>
     </section>
 
     <section>
@@ -184,11 +184,11 @@
     <section>
       <h2>Railway 專案設定</h2>
       <ol>
-        <li>在 Railway 建立新 Project，從 GitHub repository <code>KCjasper/rental-alert-bot</code> 建立服務。</li>
+        <li>在 Railway 建立新 Project，從 GitHub repository <code>KCjasper/rental-alert-bot</code> 建立服務。本次專案名稱為 <code>noble-sparkle</code>。</li>
         <li>確認服務使用 repository 根目錄，部署設定會讀取 <code>railway.json</code>。</li>
-        <li>建立 Volume，Mount path 設為 <code>/app/data</code>。SQLite 檔案必須寫入這個資料夾才會在重新部署後保留。</li>
+        <li>建立 Volume，Mount path 設為 <code>/app/data</code>。本次 Volume 名稱為 <code>rental-alert-bot-volume</code>。</li>
         <li>在 Variables 設定下表所有值。Telegram Token 與個人 ID 不要貼進聊天或提交 Git。</li>
-        <li>在 Railway Billing / Usage 設定支出上限；此項需在 Railway UI 人工確認。</li>
+        <li>確認 Railway 帳戶目前處於 Trial 額度內；若之後升級付費方案，需在 Billing / Usage 設定可接受的支出上限。</li>
       </ol>
     </section>
 
@@ -226,8 +226,7 @@
 uv run --frozen python .\scripts\check_phase6_readiness.py</code></pre>
       <p>部署後可在 Railway shell 或一次性指令中檢查 runtime variables：</p>
       <pre><code>uv run --frozen python scripts/check_phase6_readiness.py --runtime-env</code></pre>
-      <p>健康檢查應回傳 HTTP 200 並包含 <code>{"status": "ok"}</code>：</p>
-      <pre><code>curl https://你的-railway-domain/health</code></pre>
+      <p>本服務使用 Telegram long polling，不需要對外公開網址。Railway 會使用服務內部的 <code>/health</code> 做健康檢查；若未啟用 public networking，這是預期狀態。</p>
     </section>
 
     <section>
@@ -248,6 +247,23 @@ uv run --frozen python .\scripts\check_phase6_readiness.py</code></pre>
       <div class="card warn">
         <p>第 6 階段不能只靠 repo 設定宣告完成；必須在 Railway 上完成一次 redeploy 與 restart 後驗證資料仍存在。</p>
       </div>
+      <div class="card ok">
+        <h3>通過紀錄（2026-06-23）</h3>
+        <ul>
+          <li>Railway project：<code>noble-sparkle</code>；service：<code>rental-alert-bot</code>。</li>
+          <li>最新成功部署版本：<code>Recover stale service run records</code>。</li>
+          <li>Volume：<code>rental-alert-bot-volume</code>；mount path：<code>/app/data</code>；資料庫：<code>/app/data/rental_alert.db</code>。</li>
+          <li>Runtime 預檢：<code>PHASE6_RUNTIME_ENV_OK</code>。</li>
+          <li>SQLite：重啟與重新部署後仍為 <code>schema_version=5</code>、<code>integrity=ok</code>。</li>
+          <li>服務啟動紀錄：<code>running_service_run_count=1</code>；舊的未完成啟動紀錄已標記為 stale recovery。</li>
+          <li>Telegram outbound：<code>telegram_send_ok=True</code>；使用者實測 TG 指令正常。</li>
+          <li>Railway DB 指令事件：<code>command_event_count=2</code>、<code>start_accepted=1</code>、<code>subscriptions_accepted=1</code>。</li>
+          <li>日誌安全：檢查輸出未出現 Telegram Token 明文；敏感值仍只存在 Railway Variables 與本機 <code>.env</code>。</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <p>雲端資料庫目前是新建空庫，尚未建立真實房源訂閱。第 7 階段會用真實訂閱補上 72 小時穩定性、去重、告警、備份與回退驗收。</p>
+      </div>
     </section>
 
     <section>
@@ -260,7 +276,7 @@ uv run --frozen python .\scripts\check_phase6_readiness.py</code></pre>
       </ul>
     </section>
 
-    <footer>文件版本：v0.1 · 更新日期：2026-06-22</footer>
+    <footer>文件版本：v0.2 · 更新日期：2026-06-23</footer>
   </main>
 </body>
 </html>

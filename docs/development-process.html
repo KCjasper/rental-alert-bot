@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 6 部署準備中，已完成 Railway repo 設定與健康檢查入口</span>
+      <span class="status">目前進度：階段 6 已通過，下一階段為雲端正式穩定性驗收</span>
     </header>
 
     <section>
@@ -347,8 +347,8 @@
           </tr>
           <tr>
             <td>6–7</td>
-            <td>6 開發中；7 待開發</td>
-            <td>已新增 Railway config、部署文件、<code>/health</code> 健康檢查與第 6 階段預檢腳本；仍需在 Railway 實際建立服務、Volume、Variables、支出上限，並完成重新部署與強制重啟驗收。</td>
+            <td>6 已通過；7 待開發</td>
+            <td>Railway 服務、Volume、Variables、健康檢查、重新部署、強制重啟與 Telegram 指令驗收皆已通過；第 7 階段需在雲端建立真實訂閱並累積 72 小時穩定性證據。</td>
           </tr>
         </tbody>
       </table>
@@ -735,7 +735,29 @@
             <code>scripts/check_phase6_readiness.py</code> 可檢查 repo 部署設定，部署後也可用
             <code>--runtime-env</code> 驗證 Railway Variables 與 Volume 路徑。
             部署操作文件已新增於 <code>docs/railway-deployment.html</code>。
-            尚待在 Railway UI 實際建立服務、掛載 Volume、設定 Variables、設定支出上限並完成 redeploy/restart 驗收。
+          </div>
+          <div class="gate">
+            通過紀錄（2026-06-23）：Railway 專案 <code>noble-sparkle</code> 已建立
+            <code>rental-alert-bot</code> 服務，從 GitHub repository <code>KCjasper/rental-alert-bot</code>
+            部署最新版本 <code>Recover stale service run records</code>。已掛載
+            <code>rental-alert-bot-volume</code> 至 <code>/app/data</code>，並設定
+            <code>DATABASE_PATH=/app/data/rental_alert.db</code>、Telegram Token、授權 Telegram User ID、
+            輪詢、告警、時區與健康檢查相關 Variables。Railway runtime 檢查輸出
+            <code>PHASE6_RUNTIME_ENV_OK</code>。
+          </div>
+          <div class="gate">
+            通過紀錄（2026-06-23）：Railway 服務完成一次強制重啟與一次重新部署後，
+            SQLite 仍位於 Volume 路徑，<code>schema_version=5</code>、<code>integrity=ok</code>；
+            最新狀態顯示 <code>running_service_run_count=1</code>，舊的未完成啟動紀錄已由
+            <code>stale_startup_recovery</code> 標記處理。Telegram outbound 測試輸出
+            <code>telegram_send_ok=True</code>，使用者實測 TG 指令正常，Railway DB 也記錄
+            <code>command_event_count=2</code>、<code>start_accepted=1</code>、
+            <code>subscriptions_accepted=1</code>。部署過程未在檢查輸出中發現 Telegram Token 明文。
+          </div>
+          <div class="gate">
+            驗收註記：目前 Railway 雲端資料庫是新建空庫，尚未放入真實房源訂閱與去重資料；
+            第 6 階段已驗證雲端部署、持久磁碟、重啟、重新部署與 Bot 指令可用性。
+            真實訂閱、房源去重與 72 小時雲端穩定性證據納入第 7 階段。
           </div>
         </article>
 
