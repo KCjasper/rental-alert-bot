@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 5 開發中，已完成監控服務、圖片通知、本機完整服務入口、冷啟動紀錄與長時間驗收工具</span>
+      <span class="status">目前進度：階段 5 已通過，下一階段為 Railway 部署與營運設定</span>
     </header>
 
     <section>
@@ -342,13 +342,13 @@
           </tr>
           <tr>
             <td>5. 排程、整合與本機端到端測試</td>
-            <td><strong>開發中</strong></td>
-            <td>已完成一次性監控、常駐監控、本機單一程序入口、圖片通知、健康狀態輸出、監控執行紀錄、服務啟停紀錄、實跑前預檢、圖片抽查匯出與階段 5 驗證腳本；8 小時穩定性驗收與 20 筆圖片人工抽查尚未完成。</td>
+            <td><strong>已通過</strong></td>
+            <td>本機驗收時間窗內累積 8.81 小時、100 次有效檢查、0 次失敗、0 筆重複成功通知、2 次服務啟動且皆正常停止；20 筆圖片人工抽查皆與房源一致。</td>
           </tr>
           <tr>
             <td>6–7</td>
             <td>待開發</td>
-            <td>需待階段 5 通過 8 小時本機穩定性驗收後才能進入部署與正式穩定性驗收。</td>
+            <td>下一步可進入 Railway 部署、持久化資料設定與雲端正式穩定性驗收。</td>
           </tr>
         </tbody>
       </table>
@@ -636,7 +636,6 @@
             <code>scripts/create_phase5_window.py</code> 可建立不覆寫的驗收時間窗 JSON；
             驗證器支援 <code>--window-file</code>、<code>--since</code>／<code>--until</code> 時間窗，
             正式驗收可排除較早測試紀錄。
-            尚未完成實際 8 小時驗收與 20 筆圖片人工抽查。
           </div>
           <div class="gate">
             開發紀錄（2026-06-21）：已新增 <code>scripts/create_phase5_window.py</code>
@@ -677,6 +676,16 @@
             並將本機 <code>data/rental_alert.db</code> 從 schema v4 遷移到 schema v5。
             <code>scripts/check_phase5_readiness.py</code> 已再次通過：SQLite 完整、1 組 active 訂閱、
             1 組 due 訂閱；目前仍需預留約 8.16 小時完成 90 次有效檢查，且驗收期間需正常停止並重新啟動一次服務。
+          </div>
+          <div class="gate">
+            通過紀錄（2026-06-22）：正式驗收時間窗
+            <code>outputs/phase5-window-20260621-220141.json</code> 內，
+            <code>scripts/validate_phase5_runtime.py</code> 驗證通過。證據包含：
+            SQLite integrity OK、8.81 小時實跑、100 次有實際檢查訂閱的排程、0 次檢查失敗、
+            2 次服務啟動、0 筆 running／failed 服務紀錄、0 筆重複成功通知、
+            32 筆含圖片房源候選、0 次圖片 fallback 失敗，以及
+            <code>outputs/phase5-image-audit.csv</code> 中 20 筆人工圖片抽查皆為 <code>yes</code>。
+            第 5 階段已達成本機端到端完成標準，可進入第 6 階段部署。
           </div>
         </article>
 
