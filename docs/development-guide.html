@@ -136,6 +136,24 @@ uv sync --frozen</code></pre>
     </section>
 
     <section>
+      <h2>Railway 部署前預檢</h2>
+      <p>
+        第 6 階段部署設定放在 <code>railway.json</code>，操作步驟見
+        <a href="railway-deployment.html">Railway 部署操作文件</a>。推送前先確認 repo 內部署設定完整：
+      </p>
+      <pre><code>$env:UV_CACHE_DIR = "$PWD\.uv-cache"
+uv run --frozen python .\scripts\check_phase6_readiness.py</code></pre>
+      <p>
+        部署到 Railway 後，再於 Railway runtime 環境執行：
+      </p>
+      <pre><code>uv run --frozen python scripts/check_phase6_readiness.py --runtime-env</code></pre>
+      <div class="note">
+        Railway 的 <code>DATABASE_PATH</code> 必須設為 <code>/app/data/rental_alert.db</code>，
+        並將 Volume mount path 設為 <code>/app/data</code>，否則重新部署後 SQLite 可能遺失。
+      </div>
+    </section>
+
+    <section>
       <h2>驗證啟動設定</h2>
       <p>在專案根目錄建立未提交的 <code>.env</code>：</p>
       <pre><code>TELEGRAM_BOT_TOKEN=
@@ -332,7 +350,7 @@ uv run --frozen python .\scripts\validate_phase5_runtime.py --window-file .\outp
       </ul>
     </section>
 
-    <footer>文件版本：v0.7 · 更新日期：2026-06-21</footer>
+    <footer>文件版本：v0.8 · 更新日期：2026-06-22</footer>
   </main>
 </body>
 </html>

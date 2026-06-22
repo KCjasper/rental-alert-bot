@@ -391,11 +391,14 @@ INITIAL_NOTIFICATION_BATCH_SIZE=10
 TELEGRAM_SEND_DELAY_SECONDS=1.2
 FAILURE_ALERT_THRESHOLD=3
 LOG_LEVEL=INFO
-TZ=Asia/Taipei</code></pre>
+TZ=Asia/Taipei
+PORT=
+HEALTHCHECK_PATH=/health</code></pre>
       <ul>
         <li>真實 Token 與 Telegram User ID 只存於本機 <code>.env</code> 或 Railway Variables。</li>
         <li><code>.env</code>、資料庫與日誌不得提交 Git。</li>
-        <li>Railway 部署時將 <code>DATABASE_PATH</code> 改為持久磁碟掛載路徑。</li>
+        <li>Railway 部署時將 <code>DATABASE_PATH</code> 改為持久磁碟掛載路徑，例如 <code>/app/data/rental_alert.db</code>。</li>
+        <li>Railway 會自動提供 <code>PORT</code>；程式收到 <code>PORT</code> 後會啟動 <code>/health</code> 健康檢查。</li>
       </ul>
     </section>
 

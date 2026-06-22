@@ -21,7 +21,7 @@ try {
     Invoke-Checked { uv sync --frozen }
     Invoke-Checked { uv run --frozen ruff check . }
     Invoke-Checked { uv run --frozen pytest }
-    Invoke-Checked { uv run --frozen python -m compileall -q src tests }
+    Invoke-Checked { uv run --frozen python -m compileall -q src scripts tests }
 }
 finally {
     Pop-Location

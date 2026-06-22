@@ -82,6 +82,19 @@ def _positive_integer(
     return value
 
 
+def _optional_positive_integer(environment: Mapping[str, str], name: str) -> int | None:
+    raw_value = environment.get(name, "").strip()
+    if not raw_value:
+        return None
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ConfigurationError(f"{name} must be an integer") from exc
+    if value <= 0:
+        raise ConfigurationError(f"{name} must be greater than zero")
+    return value
+
+
 def _positive_float(environment: Mapping[str, str], name: str, default: float) -> float:
     raw_value = environment.get(name, str(default)).strip()
     try:
@@ -107,6 +120,8 @@ class Settings:
     failure_alert_threshold: int
     log_level: str
     timezone: str
+    health_port: int | None
+    health_path: str
 
     def __repr__(self) -> str:
         return (
@@ -121,7 +136,9 @@ class Settings:
             f"telegram_send_delay_seconds={self.telegram_send_delay_seconds!r}, "
             f"failure_alert_threshold={self.failure_alert_threshold!r}, "
             f"log_level={self.log_level!r}, "
-            f"timezone={self.timezone!r}"
+            f"timezone={self.timezone!r}, "
+            f"health_port={self.health_port!r}, "
+            f"health_path={self.health_path!r}"
             ")"
         )
 
@@ -157,6 +174,10 @@ class Settings:
         if not timezone:
             raise ConfigurationError("TZ is required")
 
+        health_path = values.get("HEALTHCHECK_PATH", "/health").strip()
+        if not health_path.startswith("/"):
+            raise ConfigurationError("HEALTHCHECK_PATH must start with /")
+
         database_path = Path(values.get("DATABASE_PATH", "./data/rental_alert.db")).expanduser()
 
         return cls(
@@ -188,4 +209,6 @@ class Settings:
             ),
             log_level=log_level,
             timezone=timezone,
+            health_port=_optional_positive_integer(values, "PORT"),
+            health_path=health_path,
         )

@@ -306,7 +306,7 @@
         後續開發一律依照本流程逐階段進行。每個階段必須留下可檢查的成果，
         並通過階段關卡後才能進入下一階段；不能只因為「程式可以啟動」就視為產品完成。
       </p>
-      <span class="status">目前進度：階段 5 已通過，下一階段為 Railway 部署與營運設定</span>
+      <span class="status">目前進度：階段 6 部署準備中，已完成 Railway repo 設定與健康檢查入口</span>
     </header>
 
     <section>
@@ -347,8 +347,8 @@
           </tr>
           <tr>
             <td>6–7</td>
-            <td>待開發</td>
-            <td>下一步可進入 Railway 部署、持久化資料設定與雲端正式穩定性驗收。</td>
+            <td>6 開發中；7 待開發</td>
+            <td>已新增 Railway config、部署文件、<code>/health</code> 健康檢查與第 6 階段預檢腳本；仍需在 Railway 實際建立服務、Volume、Variables、支出上限，並完成重新部署與強制重啟驗收。</td>
           </tr>
         </tbody>
       </table>
@@ -727,6 +727,16 @@
             </section>
           </div>
           <div class="gate">階段關卡：執行一次重新部署與一次強制重啟後，訂閱、去重資料及 Bot 功能皆保持正常。</div>
+          <div class="gate">
+            開發紀錄（2026-06-22）：已新增 <code>railway.json</code>，
+            啟動命令為 <code>uv run --frozen python scripts/run_local_service.py</code>，
+            並設定 <code>/health</code>、120 秒 healthcheck timeout、<code>ALWAYS</code> 重啟策略。
+            <code>scripts/run_local_service.py</code> 會在 Railway 提供 <code>PORT</code> 時啟動健康檢查 HTTP server；
+            <code>scripts/check_phase6_readiness.py</code> 可檢查 repo 部署設定，部署後也可用
+            <code>--runtime-env</code> 驗證 Railway Variables 與 Volume 路徑。
+            部署操作文件已新增於 <code>docs/railway-deployment.html</code>。
+            尚待在 Railway UI 實際建立服務、掛載 Volume、設定 Variables、設定支出上限並完成 redeploy/restart 驗收。
+          </div>
         </article>
 
         <article class="phase" id="phase-7">

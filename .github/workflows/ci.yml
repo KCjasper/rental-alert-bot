@@ -35,4 +35,4 @@ jobs:
         run: uv run --frozen pytest
 
       - name: Compile Python sources
-        run: uv run --frozen python -m compileall -q src tests
+        run: uv run --frozen python -m compileall -q src scripts tests

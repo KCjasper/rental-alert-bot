@@ -10,6 +10,7 @@ import threading
 from rental_alert_bot.bot_service import BotService, BotServiceSettings
 from rental_alert_bot.config import Settings
 from rental_alert_bot.database import Database
+from rental_alert_bot.health_server import HealthServer
 from rental_alert_bot.logging_config import configure_logging
 from rental_alert_bot.monitoring_service import MonitoringService, MonitoringSettings
 from rental_alert_bot.rental_client import RentalClient
@@ -40,10 +41,20 @@ def main() -> int:
     database.initialize()
     repository = RentalRepository(database)
     service_run = repository.record_service_start(process_name="local_service")
+    health_server: HealthServer | None = None
     stop_status = "stopped"
     stop_error: str | None = None
 
     try:
+        if settings.health_port is not None:
+            health_server = HealthServer(
+                database=database,
+                port=settings.health_port,
+                path=settings.health_path,
+                logger=logger,
+            )
+            health_server.start()
+
         with (
             TelegramClient(
                 settings.telegram_bot_token,
@@ -127,6 +138,8 @@ def main() -> int:
             )
         except Exception:
             logger.exception("service_run_stop_record_failed")
+        if health_server is not None:
+            health_server.stop()
 
     return 0
 

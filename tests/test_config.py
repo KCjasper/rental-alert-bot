@@ -35,6 +35,27 @@ def test_loads_defaults() -> None:
     assert settings.poll_interval_seconds == 300
     assert settings.poll_jitter_seconds == 30
     assert settings.timezone == "Asia/Taipei"
+    assert settings.health_port is None
+    assert settings.health_path == "/health"
+
+
+def test_loads_healthcheck_port_from_railway_environment() -> None:
+    environment = valid_environment()
+    environment["PORT"] = "8080"
+    environment["HEALTHCHECK_PATH"] = "/ready"
+
+    settings = Settings.from_environment(environment, require_secrets=True)
+
+    assert settings.health_port == 8080
+    assert settings.health_path == "/ready"
+
+
+def test_rejects_invalid_healthcheck_path() -> None:
+    environment = valid_environment()
+    environment["HEALTHCHECK_PATH"] = "health"
+
+    with pytest.raises(ConfigurationError, match="must start with /"):
+        Settings.from_environment(environment, require_secrets=True)
 
 
 def test_loads_settings_from_dotenv_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
